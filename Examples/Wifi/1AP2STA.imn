@@ -1,0 +1,56 @@
+node n0 {
+    type wifiAP
+    network-config {
+	hostname AP1
+	!
+	interface lo0
+	 type lo
+	 ip address 127.0.0.1/8
+	 ipv6 address ::1/128
+	!
+    }
+    canvas c0
+    iconcoords {408 168}
+    labelcoords {408 207}
+}
+
+node n1 {
+    type wifiSTA
+    network-config {
+	hostname STA1
+	!
+    }
+    canvas c0
+    iconcoords {240 360}
+    labelcoords {240 402}
+}
+
+node n2 {
+    type wifiSTA
+    network-config {
+	hostname STA2
+	!
+    }
+    canvas c0
+    iconcoords {552 360}
+    labelcoords {552 402}
+}
+
+canvas c0 {
+    name {Canvas0}
+}
+
+option show {
+    interface_names yes
+    ip_addresses yes
+    ipv6_addresses yes
+    node_labels yes
+    link_labels yes
+    background_images no
+    annotations yes
+    hostsAutoAssign no
+    grid yes
+    iconSize normal
+    zoom 1.0
+}
+

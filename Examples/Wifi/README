@@ -1,0 +1,8 @@
+In order to capture complete WiFi radio frames (w_channels) with wireshark.
+First, start wireshark using the menu wireshark->w_channels. Then, force 
+reassociation with the access point using:
+ifconfig wlan1 down
+ifconfig wlan1 up
+Wireshark will capture EAPOL frames, required for decrypting next radio frames.
+Also, you must enable the IEEE 802.11 decrypt option and precise the password 
+and the SSID in the form password:ssid (key), in the field wpa-pwd (key type).
