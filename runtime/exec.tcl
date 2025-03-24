@@ -1710,10 +1710,12 @@ proc generateHostsFile { node } {
     global hostsAutoAssign
 
     if { $hostsAutoAssign == 1 } {
-	if { [[typemodel $node].virtlayer] == "VIMAGE" || [[typemodel $node].virtlayer] == "NAMESPACE" || [[typemodel $node].virtlayer] == "DYNAMIPS" || [[typemodel $node].virtlayer] == "WIFIAP" || || [[typemodel $node].virtlayer] == "WIFISTA"} {
+	# Removed a duplicate (|| ||) in the if condition as it was causing issues when launching the Auto-generate /etc/hosts file tool
+	if { [[typemodel $node].virtlayer] == "VIMAGE" || [[typemodel $node].virtlayer] == "NAMESPACE" || [[typemodel $node].virtlayer] == "DYNAMIPS" || [[typemodel $node].virtlayer] == "WIFIAP" || [[typemodel $node].virtlayer] == "WIFISTA"} {
 	    if { $etchosts == "" } {
 		foreach iter $node_list {
-		    if { [[typemodel $iter].virtlayer] == "VIMAGE" || [[typemodel $node].virtlayer] == "NAMESPACE" || [[typemodel $node].virtlayer] == "DYNAMIPS" || [[typemodel $node].virtlayer] == "WIFIAP" || || [[typemodel $node].virtlayer] == "WIFISTA"} {
+			# Removed a duplicate (|| ||) in the if condition as it was causing issues when launching the Auto-generate /etc/hosts file tool
+		    if { [[typemodel $iter].virtlayer] == "VIMAGE" || [[typemodel $node].virtlayer] == "NAMESPACE" || [[typemodel $node].virtlayer] == "DYNAMIPS" || [[typemodel $node].virtlayer] == "WIFIAP" || [[typemodel $node].virtlayer] == "WIFISTA"} {
 			foreach ifc [ifcList $iter] {
 			    if { $ifc != "" } {
 				set ipv4 [lindex [split [getIfcIPv4addr $iter $ifc] "/"] 0]
