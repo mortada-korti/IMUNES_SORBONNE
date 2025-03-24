@@ -14,6 +14,8 @@ NODESDIR = $(IMUNESDIR)/nodes
 RUNTIMEDIR = $(IMUNESDIR)/runtime
 SCRIPTSDIR = $(IMUNESDIR)/scripts
 PATCHESDIR = $(IMUNESDIR)/src/patches
+WIFIFILESDIR = $(IMUNESDIR)/WIFI
+WIFISCRIPTSDIR = $(IMUNESDIR)/ScriptWIFI
 NORMAL_ICONSDIR = $(ICONSDIR)/normal
 SMALL_ICONSDIR = $(ICONSDIR)/small
 TINY_ICONSDIR = $(ICONSDIR)/tiny
@@ -33,6 +35,8 @@ GUIFILES =	$(wildcard gui/*.tcl)
 NODESFILES =	$(wildcard nodes/*.tcl)
 RUNTIMEFILES =	$(wildcard runtime/*.tcl)
 PATCHESFILES =	$(wildcard src/patches/*)
+WIFIFILES =     $(wildcard WIFI/*)
+WIFISCRIPTS =   $(wildcard ScriptWIFI/*)
 
 VROOT =	$(wildcard scripts/*.sh scripts/*.bash)
 TOOLS =	$(filter-out $(VROOT), $(wildcard scripts/*))
@@ -115,6 +119,12 @@ endif
 
 	mkdir -p $(PATCHESDIR)
 	cp $(PATCHESFILES) $(PATCHESDIR)
+
+	mkdir -p $(WIFIFILESDIR)
+	cp -r $(WIFIFILES) $(WIFIFILESDIR)
+
+	mkdir -p $(WIFISCRIPTSDIR)
+	cp -r $(WIFISCRIPTS) $(WIFISCRIPTSDIR)
 
 	mkdir -p $(ICONSDIR)
 	for file in $(ICONS); do \
