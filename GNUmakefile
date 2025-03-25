@@ -64,6 +64,8 @@ all: install vroot
 
 install: uninstall netgraph
 	mkdir -p $(IMUNESDIR)
+	mkdir -p $(IMUNESDIR)/Dynamips
+	cp -r /root/imunes/Dynamips/ios $(IMUNESDIR)/Dynamips/
 	cp $(BASEFILES) $(IMUNESDIR)
 	ROOTDIR=$(PREFIX) sh scripts/update_version.sh
 	mkdir -p $(BINDIR)

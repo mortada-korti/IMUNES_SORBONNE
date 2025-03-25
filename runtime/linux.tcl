@@ -1987,11 +1987,15 @@ proc prepareDynamips { eid } {
 
     global dynacurdir
 
-    catch "exec pkill -9 dynamips"
-    catch "exec pkill -9 dynagen"
-    catch "exec /usr/bin/dynamips -H 7200 &"
-    catch "exec /usr/bin/dynagen $dynacurdir/Dynamips/$eid/lab/topologie.net &"
-
+    # Vérifier si le serveur hyperviseur est déjà en cours d'exécution 
+    set isRunning [catch {exec nc -z localhost 7200} result]
+    if {$isRunning != 0} {
+        # Si le server n'est pas en cours d'exécution, le démarrer
+        catch {exec /usr/bin/dynamips -H 7200 &}
+    }
+    # Arrêter dynagen avant de le relancer
+    catch {exec pkill -9 dynagen}
+    catch {exec /usr/bin/dynagen $dynacurdir/Dynamips/$eid/lab/topologie.net &}
 }
 
 
