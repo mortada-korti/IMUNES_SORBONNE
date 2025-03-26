@@ -1071,26 +1071,28 @@ configFichier_STA $node
     }
 
     if { $changed == 1 } {
+        # Fixed an issue when naming/renaming STA node
+    if {[[typemodel $node].virtlayer] != "WIFISTA"} {
+        set nbook [lsearch [pack slaves .popup] .popup.nbook]
+        if { $nbook != -1 && $treecolumns != "" } {
 
-	set nbook [lsearch [pack slaves .popup] .popup.nbook]
-	if { $nbook != -1 && $treecolumns != "" } {
+            configGUI_refreshIfcsTree .popup.nbook.nfInterfaces.panwin.f1.tree $node
+            set shownifcframe [pack slaves [lindex [.popup.nbook tabs] 1].panwin.f2]
+            set shownifc [string trim [lindex [split $shownifcframe .] end] if]
+            [lindex [.popup.nbook tabs] 1].panwin.f1.tree selection set $shownifc
 
-	    configGUI_refreshIfcsTree .popup.nbook.nfInterfaces.panwin.f1.tree $node
-	    set shownifcframe [pack slaves [lindex [.popup.nbook tabs] 1].panwin.f2]
-	    set shownifc [string trim [lindex [split $shownifcframe .] end] if]
-	    [lindex [.popup.nbook tabs] 1].panwin.f1.tree selection set $shownifc
+            if { ".popup.nbook.nfBridge" in [.popup.nbook tabs] } {
 
-	    if { ".popup.nbook.nfBridge" in [.popup.nbook tabs] } {
-
-		configGUI_refreshBridgeIfcsTree .popup.nbook.nfBridge.panwin.f1.tree $node
-	    }
-	} elseif { $nbook == -1 && $treecolumns != "" } {
+                configGUI_refreshBridgeIfcsTree .popup.nbook.nfBridge.panwin.f1.tree $node
+            }
+        } elseif { $nbook == -1 && $treecolumns != "" } {
 
 
-	  configGUI_refreshIfcsTree .popup.panwin.f1.tree $node
+            configGUI_refreshIfcsTree .popup.panwin.f1.tree $node
 	} else {
 
-	}
+    }
+    }
 	redrawAll
 	updateUndoLog
     }
