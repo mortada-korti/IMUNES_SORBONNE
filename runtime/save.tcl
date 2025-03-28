@@ -950,8 +950,8 @@ if {[file exist "$dynacurdir/Dynamips/$eid/lab/config_routeur_$nom_cisco"] == 1}
                         set confQuagga ""
 				
                         # Add the hostname in .imn file
-			catch {set nomhote [ exec nsenter -u -t $fast hostname ]
-			setNodeName $node $nomhote }
+			# catch {set nomhote [ exec nsenter -u -t $fast hostname ]
+			# setNodeName $node $nomhote }
 
                         # Add the MAC address in .imn file
 
