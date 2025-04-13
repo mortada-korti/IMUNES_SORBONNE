@@ -124,7 +124,7 @@ lib/imunes/nodes/nouveauPc.tcl
 lib/imunes/nodes/nouveauRouteur.tcl
 lib/imunes/nodes/packgen.tcl
 lib/imunes/nodes/pc.tcl
-lib/imunes/nodes/quagga.tcl
+lib/imunes/nodes/frr.tcl
 lib/imunes/nodes/rj45.tcl
 lib/imunes/nodes/static.tcl
 lib/imunes/nodes/stpswitch.tcl
@@ -147,6 +147,6 @@ lib/imunes/scripts/prepare_vroot_10.sh
 lib/imunes/scripts/prepare_vroot_8.sh
 lib/imunes/scripts/prepare_vroot_9.sh
 lib/imunes/scripts/prepare_vroot_functions.sh
-lib/imunes/scripts/quaggaboot.sh
+lib/imunes/scripts/frrboot.sh
 lib/imunes/scripts/update_version.sh
 lib/imunes/src/patches/tayga_fbsd_patch.diff

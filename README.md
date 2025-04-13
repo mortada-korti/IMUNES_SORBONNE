@@ -1,22 +1,10 @@
 ************************************************************************
 ## IMUNES - an Integrated Multiprotocol Network Emulator / Simulator
 ************************************************************************
-The official IMUNES program was developed by the university of Zagreb
 
 IMUNES GUI is a simple Tcl/Tk based management console, allowing for
 specification and management of virtual network topologies. The emulation
 execution engine itself operates within the operating system kernel.
-
-Version Info
--------------------
-
-Note: This specific version of imunes has NOT been tested on FreeBSD
-
-In this version of imunes we added a full integration of emulation of
-Linux namespaces and CISCO routers, saving of parameters, VLANs, WiFi
-emulation and other features
-This work was developed by Benadji Hanane and Oulad Said Chawki
-Supervised and maintained by Naceur Malouch - LIP6/SU
 
 System requirements
 -------------------
@@ -231,8 +219,5 @@ Visit our [wiki](https://github.com/imunes/imunes/wiki) for more:
  - [Scripting IMUNES experiments](https://github.com/imunes/imunes/wiki#scripting-imunes-experiments)
  - [Troubleshooting](https://github.com/imunes/imunes/wiki#troubleshooting)
 
-For additional information visit the official IMUNES web site:
+For additional information visit our web site:
         http://imunes.net/
-        
-You can also read the quickstart here :
-        https://github.com/imunesdevops/IMUNES_SORBONNE/blob/main/Quick_Start_Guide_Imunes-Sorbonne..pdf

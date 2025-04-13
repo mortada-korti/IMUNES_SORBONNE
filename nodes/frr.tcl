@@ -48,11 +48,7 @@
 #  types that work on the same layer.
 #****
 
-set MODULE wifiAP
-
-registerModule $MODULE
-
-registerRouterModule $MODULE
+set MODULE router.frr
 
 #****f* frr.tcl/router.frr.layer
 # NAME
@@ -81,7 +77,7 @@ proc $MODULE.layer {} {
 #   * layer -- set to VIMAGE
 #****
 proc $MODULE.virtlayer {} {
-    return WIFIAP
+    return VIMAGE
 }
 
 #****f* frr.tcl/router.frr.cfggen
@@ -103,37 +99,78 @@ proc $MODULE.virtlayer {} {
 #****
 
 proc $MODULE.cfggen { node } {
-      set cfg {}
-    set cfg [concat $cfg [nodeCfggenIfcIPv4 $node]]
-    set cfg [concat $cfg [nodeCfggenIfcIPv6 $node]]
-    lappend cfg ""
+    upvar 0 ::cf::[set ::curcfg]::$node $node
 
-    set cfg [concat $cfg [nodeCfggenRouteIPv4 $node]]
-    set cfg [concat $cfg [nodeCfggenRouteIPv6 $node]]
+    set cfg {}
+       
+
+    foreach ifc [allIfcList $node] {
+	lappend cfg "interface $ifc"
+	set addrs [getIfcIPv4addrs $node $ifc]
+	foreach addr $addrs {
+	    if { $addr != "" } {
+		lappend cfg " ip address $addr"
+	    }
+	}
+	set addrs [getIfcIPv6addrs $node $ifc]
+	foreach addr $addrs {
+	    if { $addr != "" } {
+		lappend cfg " ipv6 address $addr"
+	    }
+	}
+	if { [getIfcOperState $node $ifc] == "down" } {
+	    lappend cfg " shutdown"
+	}
+	lappend cfg "!"
+    }
+
+    foreach proto { rip ripng ospf ospf6 bgp } {
+	set protocfg [netconfFetchSection $node "router $proto"]
+	if { $protocfg != "" } {
+	    lappend cfg "router $proto"
+	    foreach line $protocfg {
+		lappend cfg "$line"
+	    }
+	    if {$proto == "ospf6"} {
+		foreach ifc [allIfcList $node] {
+		    if {$ifc == "lo0"} {
+			continue
+		    }
+		    lappend cfg " interface $ifc area 0.0.0.0"
+		}
+	    }
+	    lappend cfg "!"
+	}
+    }
+
+    foreach statrte [getStatIPv4routes $node] {
+	lappend cfg "ip route $statrte"
+    }
+    foreach statrte [getStatIPv6routes $node] {
+	lappend cfg "ipv6 route $statrte"
+    }
 
     return $cfg
 }
 
-
-#****f* pc.tcl/pc.bootcmd
+#****f* frr.tcl/router.frr.bootcmd
 # NAME
-#   pc.bootcmd -- boot command
+#   router.frr.bootcmd -- boot command
 # SYNOPSIS
-#   set appl [pc.bootcmd $node]
+#   set appl [router.frr.bootcmd $node]
 # FUNCTION
-#   Procedure bootcmd returns the application that reads and employes the
-#   configuration generated in pc.cfggen.
-#   In this case (procedure pc.bootcmd) specific application is /bin/sh
+#   Procedure bootcmd returns the defaut application that reads and employes
+#   the configuration generated in router.frr.cfggen.
+#   In this case (procedure router.frr.bootcmd) specific application
+#   is frrboot.sh
 # INPUTS
-#   * node -- node id (type of the node is pc)
+#   * node - node id (type of the node is router and routing model is frr)
 # RESULT
-#   * appl -- application that reads the configuration (/bin/sh)
+#   * appl -- application that reads the configuration (frrboot.sh) 
 #****
+proc $MODULE.bootcmd { node } {
 
-proc $MODULE.bootcmd { node } { 
-
-	
-    return "/bin/sh"
+    return "/usr/local/bin/frrboot.sh"
 }
 
 #****f* frr.tcl/router.frr.shellcmds
@@ -148,7 +185,7 @@ proc $MODULE.bootcmd { node } {
 #   * shells -- default shells for the router.frr
 #****
 proc $MODULE.shellcmds {} {
-    return "csh bash sh tcsh"
+    return "csh bash vtysh sh tcsh"
 }
 
 #****f* frr.tcl/router.frr.instantiate
@@ -168,7 +205,7 @@ proc $MODULE.shellcmds {} {
 proc $MODULE.instantiate { eid node } {
     global inst_pipes last_inst_pipe
 
-    l3node.instantiateAP $eid $node
+    l3node.instantiate $eid $node
 
     enableIPforwarding $eid $node
 }
@@ -243,154 +280,19 @@ proc $MODULE.nghook { eid node ifc } {
     return [l3node.nghook $eid $node $ifc]
 }
 
-#****f* pc.tcl/pc.configGUI
+#****f* frr.tcl/configureVTYSHfrr
 # NAME
-#   pc.configGUI -- configuration GUI
+#   configureVTYSHfrr
 # SYNOPSIS
-#   pc.configGUI $c $node
+#   configureVTYSHfrr $eid $node
 # FUNCTION
-#   Defines the structure of the pc configuration window by calling
-#   procedures for creating and organising the window, as well as
-#   procedures for adding certain modules to that window.
-# INPUTS
-#   * c -- tk canvas
-#   * node -- node id
+#   create vtysh.conf 
 #****
-proc $MODULE.configGUI { c node } {
-    global wi
-    global guielements treecolumns
-    set guielements {}
- if {[[typemodel $node].virtlayer] == "WIFIAP"} {
-    configGUI_createConfigPopupWin $c
-    wm title $wi "AP configuration"
-    configGUI_nodeName $wi $node "Node name:"
+#
+# Modification for save.tcl
+#*****
+proc configureVTYSHfrr {eid node} {
 
-    set tabs [configGUI_addNotebook $wi $node {"Configuration" "Interfaces"}]
-    set configtab [lindex $tabs 0]
-    set ifctab [lindex $tabs 1]
-
-    set treecolumns {"OperState State" "IPv4addr IPv4 addr" "IPv6addr IPv6 addr" \
-	    "MACaddr MAC addr" "MTU MTU" "QLen Queue len" "QDisc Queue disc" "QDrop Queue drop"}
-    configGUI_addTree $ifctab $node
-
-    configGUI_WIFIAP $configtab $node
-
-     
-    configGUI_buttonsACNode $wi $node
-
-   
-
-    
-}
-}
-
-#****f* pc.tcl/pc.configInterfacesGUI
-# NAME
-#   pc.configInterfacesGUI -- configuration of interfaces GUI
-# SYNOPSIS
-#   pc.configInterfacesGUI $wi $node $ifc
-# FUNCTION
-#   Defines which modules for changing interfaces parameters are contained in
-#   the pc configuration window. It is done by calling procedures for adding
-#   certain modules to the window.
-# INPUTS
-#   * wi -- widget
-#   * node -- node id
-#   * ifc -- interface name
-#****
-proc $MODULE.configInterfacesGUI { wi node ifc } {
-    global guielements
-
-    configGUI_ifcEssentials $wi $node $ifc
-    configGUI_ifcQueueConfig $wi $node $ifc
-    configGUI_ifcMACAddress $wi $node $ifc
-    configGUI_ifcIPv4Address $wi $node $ifc
-    configGUI_ifcIPv6Address $wi $node $ifc
-}
-
-proc $MODULE.icon { size } {
-    global ROOTDIR LIBDIR
-    switch $size {
-      normal {
-	return $ROOTDIR/$LIBDIR/icons/normal/wifiAP.png
-      }
-      small {
-	return $ROOTDIR/$LIBDIR/icons/small/wifiAP.png
-      }
-      toolbar {
-	return $ROOTDIR/$LIBDIR/icons/tiny/wifiAP.png
-      }
-    }
-}
-
-#****f* nouveauRouteur.tcl/nouveauRouteur.toolbarIconDescr
-# NAME
-#   nouveauRouteur.toolbarIconDescr -- toolbar icon description
-# SYNOPSIS
-#   nouveauRouteur.toolbarIconDescr
-# FUNCTION
-#   Returns this module's toolbar icon description.
-# RESULT
-#   * descr -- string describing the toolbar icon
-#****
-# modification for cisco router 
-proc $MODULE.toolbarIconDescr {} {
-    return "Add new AP"
-}
-
-proc $MODULE.confNewNode { node } {
-    upvar 0 ::cf::[set ::curcfg]::$node $node
-    global nodeNamingBase
-
-    set nconfig [list \
-	"hostname [getNewNodeNameType wifiAP $nodeNamingBase(wifiAP)]" \
-	! ]
-    lappend $node "network-config [list $nconfig]"
-
-    setLogIfcType $node lo0 lo
-    setIfcIPv4addr $node lo0 "127.0.0.1/8"
-    setIfcIPv6addr $node lo0 "::1/128"
-    
-   # setLogIfcType $node wlan0 wlan0
-   # setIfcIPv4addr $node wlan0 "192.168.0.1/24"
-   # setIfcIPv6addr $node wlan0 "::1/128"
-
-}
-
-proc $MODULE.notebookDimensions { wi } {
-    set h 390
-    set w 507
-
-    if { [string trimleft [$wi.nbook select] "$wi.nbook.nf"] \
-	== "Configuration" } {
-	set h 420
-	set w 507
-    }
-    if { [string trimleft [$wi.nbook select] "$wi.nbook.nf"] \
-	== "Interfaces" } {
-	set h 370
-	set w 507
-    }
-
-    return [list $h $w]
-}
-
-proc $MODULE.ifcName {l r} {
-    return [l3IfcName $l $r]
-}
-
-
-proc $MODULE.confNewIfc { node ifc } {
-    global changeAddressRange changeAddressRange6
-    set changeAddressRange 0
-    set changeAddressRange6 0
-    autoIPv4addr $node $ifc
-    autoIPv6addr $node $ifc
-    autoMACaddr $node $ifc
-    autoIPv4defaultroute $node $ifc
-    autoIPv6defaultroute $node $ifc
-}
-
-proc $MODULE.IPAddrRange {} {
-    return 20
+   set node_id "$eid\.$node"
+   exec docker exec $node_id bash -c "echo 'service integrated-vtysh-config' >> /etc/frr/vtysh.conf"
 }

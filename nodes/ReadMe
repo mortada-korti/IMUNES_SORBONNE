@@ -1,6 +1,21 @@
-# 2019-2020 Sorbonne University
-# In this version of imunes we added a full integration of emulation of 
-# Linux namespaces and CISCO routers, saving of parameters, VLANs, WiFi 
-# emulation and other features
-# This work was developed by Benadji Hanane and Oulad Said Chawki
-# Supervised and maintained by Naceur Malouch - LIP6/SU
+# 2024–2025 Sorbonne University
+
+In this version of IMUNES, we introduced full integration of Kubernetes using KIND (Kubernetes IN Docker).  
+This integration allows users to design, deploy, and emulate Kubernetes clusters directly within the IMUNES environment, alongside traditional network elements (routers, switches, etc.).
+
+Additional improvements include:
+- Support for master/worker Kubernetes topology modeling.
+- Automated cluster creation and deletion.
+- Visual and interactive node configuration.
+- Pre-installed networking tools (ping, tcpdump, iperf3, etc.) in KIND nodes.
+- Enhanced container-based emulation for Kubernetes environments.
+
+---
+
+### Developed by:
+**Mortada KORTI**  
+
+### Supervised and Maintained by:
+**Naceur Malouch**  
+LIP6 / Sorbonne University
+
