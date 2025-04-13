@@ -38,7 +38,7 @@ if [ $mini -eq 0 ]; then
     installAdditionalTools install_click.sh
 fi
 
-configQuagga
+configfrr
 configXorp
 
 wiresharkGUIfix

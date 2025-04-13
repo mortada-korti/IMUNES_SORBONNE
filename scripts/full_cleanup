@@ -1,0 +1,32 @@
+#!/bin/bash
+
+echo "🧼 [1] Arrêt des expériences IMUNES..."
+for eid in $(himage -l | awk '{print $1}'); do
+    echo "  -> Suppression de l'expérience $eid"
+    imunes -b -e "$eid"
+done
+
+echo "🔪 [2] Kill des processus restants..."
+pkill -f imunes
+pkill -f socat
+pkill -f X11-unix
+pkill -f unshare
+pkill -f namespace
+pkill -f ip netns
+sleep 1
+
+echo "🧹 [3] Suppression des namespaces..."
+for ns in $(ip netns list | awk '{print $1}'); do
+    echo "  -> Suppression namespace $ns"
+    ip netns delete "$ns"
+done
+
+echo "📁 [4] Suppression des fichiers résiduels..."
+rm -rf /var/run/imunes/*
+rm -rf /var/imunes/*
+
+echo "🔌 [5] Nettoyage des interfaces WiFi simulées..."
+modprobe -r mac80211_hwsim
+modprobe mac80211_hwsim radios=0
+
+echo "✅ Nettoyage complet terminé !"

@@ -43,7 +43,7 @@ if [ $mini -eq 0 ]; then
     log "OUT" "Installing additional tools done."
 fi
 
-configQuagga
+configfrr
 configXorp
 
 wiresharkGUIfix

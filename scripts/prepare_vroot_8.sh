@@ -150,7 +150,7 @@ FETCH_CMD="fetch"
 
 export BATCH="yes"
 
-PACKAGES_MINIMAL="quagga bash mrouted iftop"
+PACKAGES_MINIMAL="frr bash mrouted iftop"
 PACKAGES="$PACKAGES_MINIMAL netperf lsof elinks isc-dhcp42-server nmap \
 lighttpd akpop3d cone links nano postfix xorp"
 
@@ -277,19 +277,19 @@ fi
 
 rm -fr $VROOT_MASTER/tmp/*
 
-if [ -d "$VROOT_MASTER/usr/local/etc/quagga/" ]; then
-    cd $VROOT_MASTER/usr/local/etc/quagga/
+if [ -d "$VROOT_MASTER/usr/local/etc/frr/" ]; then
+    cd $VROOT_MASTER/usr/local/etc/frr/
     touch zebra.conf ripd.conf ripngd.conf ospfd.conf ospf6d.conf bgpd.conf
-    ln -s /boot.conf Quagga.conf
+    ln -s /boot.conf frr.conf
 else
-    log "ERR" "Quagga not installed in \
-$VROOT_MASTER/usr/local/etc/quagga/\nScript aborted."
+    log "ERR" "frr not installed in \
+$VROOT_MASTER/usr/local/etc/frr/\nScript aborted."
     exit 1
 fi
 
 cd $IMUNESDIR
-cp $ROOTDIR/$LIBDIR/scripts/quaggaboot.sh $VROOT_MASTER/usr/local/bin
-chmod 755 $VROOT_MASTER/usr/local/bin/quaggaboot.sh
+cp $ROOTDIR/$LIBDIR/scripts/frrboot.sh $VROOT_MASTER/usr/local/bin
+chmod 755 $VROOT_MASTER/usr/local/bin/frrboot.sh
 
 rm $VROOT_MASTER/etc/resolv.conf
 

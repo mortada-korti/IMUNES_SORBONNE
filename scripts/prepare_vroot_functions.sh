@@ -53,7 +53,7 @@ LOG="$WORKDIR/log"
 VROOT_DIR=/var/imunes
 
 # packages for installation
-PACKAGES_MINIMAL="pkg quagga bash mrouted iftop"
+PACKAGES_MINIMAL="pkg frr bash mrouted iftop"
 PACKAGES_COMMON="netperf lsof elinks nmap lighttpd akpop3d links nano postfix \
    dsniff scapy p0f ettercap tcpreplay hping strongswan"
 
@@ -261,20 +261,20 @@ installPackagesPkg () {
     fi
 }
 
-configQuagga () {
-    if [ -d "$VROOT_MASTER/usr/local/etc/quagga/" ]; then
-	cd $VROOT_MASTER/usr/local/etc/quagga/
+configfrr () {
+    if [ -d "$VROOT_MASTER/usr/local/etc/frr/" ]; then
+	cd $VROOT_MASTER/usr/local/etc/frr/
 	touch zebra.conf ripd.conf ripngd.conf ospfd.conf ospf6d.conf bgpd.conf isisd.conf
-	ln -s /boot.conf Quagga.conf
+	ln -s /boot.conf frr.conf
     else
-	log "ERR" "Quagga not installed in \
-$VROOT_MASTER/usr/local/etc/quagga/\nScript aborted."
+	log "ERR" "frr not installed in \
+$VROOT_MASTER/usr/local/etc/frr/\nScript aborted."
 	exit 1
     fi
 
     cd $IMUNESDIR
-    cp $ROOTDIR/$LIBDIR/scripts/quaggaboot.sh $VROOT_MASTER/usr/local/bin
-    chmod 755 $VROOT_MASTER/usr/local/bin/quaggaboot.sh
+    cp $ROOTDIR/$LIBDIR/scripts/frrboot.sh $VROOT_MASTER/usr/local/bin
+    chmod 755 $VROOT_MASTER/usr/local/bin/frrboot.sh
 }
 
 configXorp () {
