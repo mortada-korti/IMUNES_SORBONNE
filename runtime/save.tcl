@@ -42,7 +42,7 @@ proc ApplyBatchToGUI { } {
 	    set type [nodeType $node]
 
             # Save the batch modifications for the PC docker
-	    if { $type == "pc" && $oper_mode == "exec" } {
+	    if { ($type == "pc" || $type == "host") && $oper_mode == "exec" } {
 
 			# Get the id (pid) of docker pc namespaces
 			catch {exec docker inspect -f "{{.State.Pid}}" $eid.$node} fast
@@ -399,6 +399,9 @@ proc ApplyBatchToGUI { } {
 			# Get the id (pid) of docker pc namespaces
 			catch {exec docker inspect -f "{{.State.Pid}}" $eid.$node} fast	      
 
+			# Save the current FRR configuration to frr.conf
+    		catch {exec nsenter -m -t $fast vtysh -c "write memory"}
+
 			# Retrive the configuration of the router
 			set conffrr ""
 						
@@ -464,8 +467,8 @@ proc ApplyBatchToGUI { } {
                         set conffrr ""
 				
                         # Add the hostname in .imn file
-			catch {set nomhote [ exec nsenter -u -t $fast hostname ]
-			setNodeName $node $nomhote }
+			# catch {set nomhote [ exec nsenter -u -t $fast hostname ]
+			# setNodeName $node $nomhote }
 
                         # Add the MAC address in .imn file
 
@@ -526,7 +529,7 @@ proc ApplyBatchToGUISaveAS { } {
 	    set type [nodeType $node]
 
             # Save the batch modifications for the PC docker
-	    if { $type == "pc" && $oper_mode == "exec" } {
+	    if { ($type == "pc" || $type == "host") && $oper_mode == "exec" } {
 			# Get the id (pid) of docker pc namespaces
 			catch {exec docker inspect -f "{{.State.Pid}}" $eid.$node} fast
 
@@ -884,6 +887,9 @@ if {[file exist "$dynacurdir/Dynamips/$eid/lab/config_routeur_$nom_cisco"] == 1}
 		if { $type == "router" && $oper_mode == "exec" } {
 			# Get the id (pid) of docker pc namespaces
 			catch {exec docker inspect -f "{{.State.Pid}}" $eid.$node} fast	      
+
+			# Save the current FRR configuration to frr.conf
+    		catch {exec nsenter -m -t $fast vtysh -c "write memory"}
 
 			# Retrive the configuration of the router
 			set conffrr ""
