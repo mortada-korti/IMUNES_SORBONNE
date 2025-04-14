@@ -29,7 +29,7 @@ VROOT_EXISTS = $(shell [ -d /var/imunes/vroot ] && echo 1 || echo 0 )
 SERVICEDIR=/usr/local/etc/rc.d
 STARTUPDIR=/var/imunes-service
 
-BASEFILES =	COPYRIGHT README VERSION
+BASEFILES =	COPYRIGHT README VERSION ReadmeWIFI.md
 CONFIGFILES =	$(wildcard config/*.tcl)
 GUIFILES =	$(wildcard gui/*.tcl)
 NODESFILES =	$(wildcard nodes/*.tcl)
@@ -43,7 +43,8 @@ TOOLS =	$(filter-out $(VROOT), $(wildcard scripts/*))
 
 NODE_ICONS = frswitch.gif hub.gif lanswitch.gif rj45.gif cloud.gif host.gif \
 	ipfirewall.gif pc.gif router.gif click_l2.gif click_l3.gif \
-	stpswitch.gif filter.gif packgen.gif nat64.gif ext.gif nouveauPc.gif nouveauRouteur.gif wifiAP.png wifiSTA.png
+	stpswitch.gif filter.gif packgen.gif nat64.gif ext.gif nouveauPc.gif \
+	nouveauRouteur.gif wifiAP.png wifiSTA.png Pclone.png qemu.gif \
 
 NORMAL_ICONS = $(NODE_ICONS)
 

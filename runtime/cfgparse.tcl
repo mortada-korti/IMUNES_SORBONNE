@@ -484,7 +484,23 @@ proc loadCfg { cfg } {
 			docker-image {
 			    lappend $object "docker-image $value"
 			}
-			events {
+			qemu-image {
+			    lappend $object "qemu-image $value"
+			}
+			qemu-iso {
+			    lappend $object "qemu-iso $value"
+			}
+
+			qemu-boot-type {
+			    lappend $object "qemu-boot-type $value"
+			}
+     qemu-kvm {
+			    lappend $object "qemu-kvm $value"
+			}
+    qemu-memory {
+			    lappend $object "qemu-memory $value"
+			}
+      events {
 			    set cfg ""
 			    foreach zline [split $value {
 }] {

@@ -66,7 +66,7 @@
 #
 #
 # Routines for manipulation of per-node network configuration files
-# IMUNES keeps per-node network configuration in an IOS / Zebra / Quagga
+# IMUNES keeps per-node network configuration in an IOS / Zebra / frr
 # style format.
 #
 # Network configuration is embedded in each node's config section via the
@@ -1434,7 +1434,7 @@ proc nodeType { node } {
 #   set model [getNodeModel $node]
 # FUNCTION
 #   Returns node's optional routing model. Currently supported models are 
-#   quagga, xorp and static and only nodes of type router have a defined model.
+#   frr, xorp and static and only nodes of type router have a defined model.
 # INPUTS
 #   * node -- node id
 # RESULT
@@ -1453,7 +1453,7 @@ proc getNodeModel { node } {
 #   setNodeModel $node $model
 # FUNCTION
 #   Sets an optional routing model to the node. Currently supported models are
-#   quagga, xorp and static and only nodes of type router have a defined model.
+#   frr, xorp and static and only nodes of type router have a defined model.
 # INPUTS
 #   * node -- node id
 #   * model -- routing model of the specified node
@@ -2380,7 +2380,7 @@ proc setNodeType { node newtype } {
     } elseif { [lsearch "host pc" $oldtype] >= 0 \
 	    && $newtype == "router" } {
 	setType $node $newtype
-	setNodeModel $node "quagga"
+	setNodeModel $node "frr"
 	setNodeName $node $newtype[string range $node 1 end]
 	netconfClearSection $node "ip route *"
 	netconfClearSection $node "ipv6 route *"
@@ -2789,6 +2789,101 @@ proc setNodeDockerAttach { node enabled } {
     }
 }
 
+
+proc getNodeqemuImage { node } {
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    return [lindex [lsearch -inline [set $node] "qemu-image *"] 1]
+}
+
+proc setNodeqemuImage { node img } {
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    set i [lsearch [set $node] "qemu-image *"]
+    if { $i >= 0 } {
+	set $node [lreplace [set $node] $i $i]
+    }
+    if { $img != "" } {
+	lappend $node [list qemu-image $img]
+    }
+}
+proc getNodeqemuIso { node } {
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    return [lindex [lsearch -inline [set $node] "qemu-iso *"] 1]
+}
+
+proc setNodeqemuIso { node iso } {
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    set i [lsearch [set $node] "qemu-iso *"]
+    if { $i >= 0 } {
+	set $node [lreplace [set $node] $i $i]
+    }
+    if { $iso != "" } {
+	lappend $node [list qemu-iso $iso]
+    }
+}
+
+
+proc getNodeqemuBootType { node } {
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    return [lindex [lsearch -inline [set $node] "qemu-boot-type *"] 1]
+}
+
+proc setNodeqemuBootType { node bootType } {
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    set i [lsearch [set $node] "qemu-boot-type *"]
+    if { $i >= 0 } {
+	set $node [lreplace [set $node] $i $i]
+    }
+    if { $bootType != "" } {
+	lappend $node [list qemu-boot-type $bootType]
+    }
+}
+
+proc getNodeqemuKvm { node } {
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    return [lindex [lsearch -inline [set $node] "qemu-kvm *"] 1]
+}
+
+proc setNodeqemuKvm { node kvm } {
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    set i [lsearch [set $node] "qemu-kvm *"]
+    if { $i >= 0 } {
+	set $node [lreplace [set $node] $i $i]
+    }
+    if { $kvm != "" } {
+	lappend $node [list qemu-kvm $kvm]
+    }
+}
+
+
+proc getNodeqemuMemory { node } {
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    return [lindex [lsearch -inline [set $node] "qemu-memory *"] 1]
+}
+
+proc setNodeqemuMemory { node mem } {
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    set i [lsearch [set $node] "qemu-memory *"]
+    if { $i >= 0 } {
+	set $node [lreplace [set $node] $i $i]
+    }
+    if { $mem != "" } {
+	lappend $node [list qemu-memory $mem]
+    }
+}
+
+
+
+
 #****f* nodecfg.tcl/registerRouterModule
 # NAME
 #   registerRouterModule -- register module
@@ -3045,7 +3140,7 @@ proc transformNodes { nodes type } {
 		set nodecfg [lreplace $nodecfg $typeIndex $typeIndex "type $type"]
 
 		# set router model and default protocols
-		setNodeModel $node "quagga"
+		setNodeModel $node "frr"
 		setNodeProtocolRip $node 1
 		setNodeProtocolRipng $node 1
 		# clear default static routes

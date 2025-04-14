@@ -252,6 +252,14 @@ proc spawnShellExec {} {
 	    return
 	}
     }
+
+
+    if { [[typemodel $node].virtlayer] == "QEMU"} {
+        catch { eval exec "remote-viewer spice+unix:///tmp/vm_spice-$eid.$node.socket &" }
+        return
+
+    }
+
     # if the de type of node is different of namespace or dynamips or vimage do nothing 
     # else display terminal of node
     if { [[typemodel $node].virtlayer] != "VIMAGE" && [[typemodel $node].virtlayer] != "NAMESPACE" && [[typemodel $node].virtlayer] != "DYNAMIPS" && [[typemodel $node].virtlayer] != "WIFIAP" && [[typemodel $node].virtlayer] != "WIFISTA"} {
@@ -269,7 +277,7 @@ proc spawnShellExec {} {
           
 
        # set type [nodeType $node]
-       # if { $type == "router.quagga" } {
+       # if { $type == "router.frr" } {
        # set cmd "/bin/vtysh"
        # }
 	# if { [[typemodel $node].virtlayer] == "NAMESPACE"  } {
@@ -858,7 +866,9 @@ proc l3node.instantiate { eid node } {
     createNodeLogIfcs $node
     configureICMPoptions $node
 # Modification for save.tcl
-   configureVTYSHquagga $eid $node
+   configureVTYSHfrr $eid $node
+}
+
 }
 
 # modification for namespace by adding new function
@@ -901,6 +911,13 @@ proc l3node.instantiateSTA { eid node } {
     createNodeLogIfcs $node
 #    configureICMPoptions $node
 }
+
+proc l3node.instantiateQemu { eid node } {
+    prepareFilesystemForNode $node
+    createNodeQemu $node
+    createNodePhysIfcs $node
+    createNodeLogIfcs $node
+}
 #****f* exec.tcl/l3node.start
 # NAME
 #   l3node.start -- layer 3 node start
@@ -926,6 +943,9 @@ if {$type == "routeur"} {
 } elseif {$type == "pcn"} {
     startIfcsNodeN $node 
     runConfOnNodeN $node
+} elseif {$type == "Pclone"} {
+    startIfcsNodeN $node 
+    runConfOnNodeN $node
 } elseif {$type == "wifiAP"} {
     runConfOnNodeAP $node
     startIfcsNodeN $node 
@@ -933,7 +953,9 @@ if {$type == "routeur"} {
 
 } elseif {$type == "wifiSTA"} {
    runConfOnNodeSTA $node
-} else {
+} elseif {$type == "qemu"} {
+      
+} 
     startIfcsNode $node
     runConfOnNode $node
 }
@@ -1351,8 +1373,10 @@ foreach node $node_list {
      
 
         cleanupSTA $node
-	}
-         
+	} elseif { [[typemodel $node].virtlayer] == "QEMU" } {
+
+        cleanupQEMU $node
+	} 
     }
 
 
@@ -1360,8 +1384,8 @@ foreach node $node_list {
     set namespace_li [exec ip netns list]
 
 	set namespace_list [split $namespace_li \n]
-
-	foreach namespa $namespace_list {
+catch {
+    	foreach namespa $namespace_list {
 
 			set name [split $namespa " "]
 
@@ -1372,13 +1396,16 @@ foreach node $node_list {
 			set namespace_pid_list [split $namespace_pid \n]
 
 					foreach pids_namesp $namespace_pid_list {
- 
+
 
 							catch "exec kill -9 $pids_namesp"
 
 					}
                         catch "exec rm -rf /etc/netns/$namespace_filtre"
 	}
+
+}
+
 
     catch "exec ip -all netns del"
 

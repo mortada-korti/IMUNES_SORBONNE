@@ -393,19 +393,19 @@ proc ApplyBatchToGUI { } {
 				netconfInsertSection $node $section }
 		}
 
-            # Save the batch modifications for the router QUAGGA
+            # Save the batch modifications for the router frr
 
 		if { $type == "router" && $oper_mode == "exec" } {
 			# Get the id (pid) of docker pc namespaces
 			catch {exec docker inspect -f "{{.State.Pid}}" $eid.$node} fast	      
 
 			# Retrive the configuration of the router
-			set confQuagga ""
+			set conffrr ""
 						
-			catch {set confQuagga [ exec nsenter -m -t $fast \
-			     cat /etc/quagga/Quagga.conf ]}
+			catch {set conffrr [ exec nsenter -m -t $fast \
+			     cat /etc/frr/frr.conf ]}
 
-			set records [split $confQuagga "\n"]
+			set records [split $conffrr "\n"]
 
 			# save the all modifications in the .imn file
 			if { $records != "" } {
@@ -414,7 +414,7 @@ proc ApplyBatchToGUI { } {
 			}
                        
 
-			set records2 [split $confQuagga "!"]
+			set records2 [split $conffrr "!"]
 			# retrive the ipv4/ ipv6 address and show on link
 			foreach liste $records2 { 
 				set records1 [split $liste "\n"]
@@ -461,7 +461,7 @@ proc ApplyBatchToGUI { } {
 
 	
 			
-                        set confQuagga ""
+                        set conffrr ""
 				
                         # Add the hostname in .imn file
 			catch {set nomhote [ exec nsenter -u -t $fast hostname ]
@@ -879,19 +879,19 @@ if {[file exist "$dynacurdir/Dynamips/$eid/lab/config_routeur_$nom_cisco"] == 1}
 				netconfInsertSection $node $section }
 		}
 
-            # Save the batch modifications for the router QUAGGA
+            # Save the batch modifications for the router frr
 
 		if { $type == "router" && $oper_mode == "exec" } {
 			# Get the id (pid) of docker pc namespaces
 			catch {exec docker inspect -f "{{.State.Pid}}" $eid.$node} fast	      
 
 			# Retrive the configuration of the router
-			set confQuagga ""
+			set conffrr ""
 						
-			catch {set confQuagga [ exec nsenter -m -t $fast \
-			     cat /etc/quagga/Quagga.conf ]}
+			catch {set conffrr [ exec nsenter -m -t $fast \
+			     cat /etc/frr/frr.conf ]}
 
-			set records [split $confQuagga "\n"]
+			set records [split $conffrr "\n"]
 
 			# save the all modifications in the .imn file
 			if { $records != "" } {
@@ -900,7 +900,7 @@ if {[file exist "$dynacurdir/Dynamips/$eid/lab/config_routeur_$nom_cisco"] == 1}
 			}
                        
 
-			set records2 [split $confQuagga "!"]
+			set records2 [split $conffrr "!"]
 			# retrive the ipv4/ ipv6 address and show on link
 			foreach liste $records2 { 
 				set records1 [split $liste "\n"]
@@ -947,7 +947,7 @@ if {[file exist "$dynacurdir/Dynamips/$eid/lab/config_routeur_$nom_cisco"] == 1}
 
 	
 			
-                        set confQuagga ""
+                        set conffrr ""
 				
                         # Add the hostname in .imn file
 			# catch {set nomhote [ exec nsenter -u -t $fast hostname ]

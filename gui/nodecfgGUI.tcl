@@ -37,7 +37,7 @@ set bridgeProtocol rstp
 set brguielements {}
 set selectedFilterRule ""
 set selectedPackgenPacket ""
-set router_ConfigModel "quagga"
+set router_ConfigModel "frr"
 
 #****f* nodecfgGUI.tcl/nodeConfigGUI
 # NAME
@@ -1774,8 +1774,8 @@ proc configGUI_routingModel { wi node } {
     ttk::checkbutton $w.protocols.ripng -text "ripng" -variable ripngEnable
     ttk::checkbutton $w.protocols.ospf -text "ospfv2" -variable ospfEnable
     ttk::checkbutton $w.protocols.ospf6 -text "ospfv3" -variable ospf6Enable
-    ttk::radiobutton $w.model.quagga -text quagga \
-	-variable router_ConfigModel -value quagga -command \
+    ttk::radiobutton $w.model.frr -text frr \
+	-variable router_ConfigModel -value frr -command \
 	"$w.protocols.rip configure -state normal;
 	 $w.protocols.ripng configure -state normal;
 	 $w.protocols.ospf configure -state normal;
@@ -1806,7 +1806,7 @@ proc configGUI_routingModel { wi node } {
  	$w.protocols.ospf6 configure -state disabled
     }
     if { $oper_mode != "edit" } {
-	$w.model.quagga configure -state disabled
+	$w.model.frr configure -state disabled
 	$w.model.xorp configure -state disabled
 	$w.model.static configure -state disabled
 	$w.protocols.rip configure -state disabled
@@ -1818,7 +1818,7 @@ proc configGUI_routingModel { wi node } {
 	$w.model.xorp configure -state disabled
     }
     pack $w.model.label -side left -padx 2
-    pack $w.model.quagga $w.model.xorp $w.model.static \
+    pack $w.model.frr $w.model.xorp $w.model.static \
         -side left -padx 6
     pack $w.model -fill both -expand 1
     pack $w.protocols.label -side left -padx 2
@@ -1949,6 +1949,174 @@ proc configGUI_dockerImage { wi node } {
     pack $w.img -side left -padx 7
 
     pack $w -fill both
+}
+
+proc configGUI_qemuImage { wi node } {
+    global VROOT_MASTER isOSlinux
+
+    if { !$isOSlinux } {
+        return
+    }
+
+    upvar 0 ::cf::[set ::curcfg]::oper_mode oper_mode
+    global guielements
+    lappend guielements configGUI_qemuImage
+
+    set qemu_image [getNodeqemuImage $node]
+
+    set w $wi.qemuImg
+    ttk::frame $w -relief groove -borderwidth 2 -padding 2
+    ttk::label $w.label -text "Qemu Disk Image:"
+
+    pack $w.label -side left -padx 2
+
+    # Entry widget to show the selected file path
+    ttk::entry $w.img -width 40
+    $w.img insert 0 $qemu_image
+    pack $w.img -side left -padx 7
+
+    # File browse button
+    ttk::button $w.browse -text "Browse..." -command [list browseQemuImage $w.img]
+    pack $w.browse -side left -padx 7
+
+    pack $w -fill both
+}
+
+proc browseQemuImage {entryWidget} {
+    # Open file dialog
+    set filename [tk_getOpenFile -title "Select QEMU Disk Image" -filetypes {{"All Files" "*"} {"QEMU Image Files" "*.qcow2"}}]
+    # If a file was selected, insert the file path into the entry widget
+    if {$filename ne ""} {
+        $entryWidget delete 0 end
+        $entryWidget insert 0 $filename
+    }
+}
+
+proc configGUI_qemuIso { wi node } {
+    global VROOT_MASTER isOSlinux
+
+    if { !$isOSlinux } {
+        return
+    }
+
+    upvar 0 ::cf::[set ::curcfg]::oper_mode oper_mode
+    global guielements
+    lappend guielements configGUI_qemuIso
+
+    set qemu_iso [getNodeqemuIso $node]
+
+    set w $wi.qemuIso
+    ttk::frame $w -relief groove -borderwidth 2 -padding 2
+    ttk::label $w.label -text "Iso File:"
+
+    pack $w.label -side left -padx 2
+
+    # Entry widget to show the selected file path
+    ttk::entry $w.iso -width 40
+    $w.iso insert 0 $qemu_iso
+    pack $w.iso -side left -padx 7
+
+    # File browse button
+    ttk::button $w.browse -text "Browse..." -command [list browseQemuIso $w.iso]
+    pack $w.browse -side left -padx 7
+
+    pack $w -fill both
+}
+
+proc browseQemuIso {entryWidget} {
+    # Open file dialog
+    set filename [tk_getOpenFile -title "Select Iso File" -filetypes {{"All Files" "*"} {"Iso Files" "*.iso"}}]
+    # If a file was selected, insert the file path into the entry widget
+    if {$filename ne ""} {
+        $entryWidget delete 0 end
+        $entryWidget insert 0 $filename
+    }
+}
+
+
+proc configGUI_qemuBootType { wi node } {
+    global VROOT_MASTER isOSlinux
+
+    if { !$isOSlinux } {
+        return
+    }
+
+    upvar 0 ::cf::[set ::curcfg]::oper_mode oper_mode
+    global guielements
+    lappend guielements configGUI_qemuBootType
+
+    set qemu_boot_type [getNodeqemuBootType $node]
+
+    set w $wi.qemuBootType
+    ttk::frame $w -relief groove -borderwidth 2 -padding 2
+    ttk::label $w.label -text "QEMU Boot Type:"
+
+    pack $w.label -side left -padx 2
+
+    # Radio button for selecting image type
+    set bootType 0
+    ttk::radiobutton $w.radioDisk -text "Disk Image" -variable bootType -value 0
+    ttk::radiobutton $w.radioIso -text "ISO File" -variable bootType -value 1
+    pack $w.radioDisk -side left -padx 7
+    pack $w.radioIso -side left -padx 7
+
+    pack $w -fill both
+    set $w.bootType $bootType
+}
+
+proc configGUI_qemuMemory { wi node } {
+    global VROOT_MASTER isOSlinux
+
+    if { !$isOSlinux } {
+	return
+    }
+
+    upvar 0 ::cf::[set ::curcfg]::oper_mode oper_mode
+    global guielements
+    lappend guielements configGUI_qemuMemory
+
+    set qemu_memory [getNodeqemuMemory $node]
+   
+    set w $wi.qemuMem
+    ttk::frame $w -relief groove -borderwidth 2 -padding 2
+    ttk::label $w.label -text "qemu memory:"
+
+    pack $w.label -side left -padx 2
+
+    ttk::entry $w.mem -width 40
+    $w.mem insert 0 $qemu_memory
+    pack $w.mem -side left -padx 7
+
+    pack $w -fill both
+}
+proc configGUI_qemuKvm { wi node } {
+    global VROOT_MASTER isOSlinux
+
+    if { !$isOSlinux } {
+        return
+    }
+
+    upvar 0 ::cf::[set ::curcfg]::oper_mode oper_mode
+    global guielements
+    lappend guielements configGUI_qemuKvm
+
+    set qemu_kvm [getNodeqemuKvm $node]
+
+    set w $wi.qemuKvm
+    ttk::frame $w -relief groove -borderwidth 2 -padding 2
+    ttk::label $w.label -text "QEMU kvm Type:"
+
+    pack $w.label -side left -padx 2
+
+    # Radio button for selecting image type
+    set kvm 0
+    ttk::radiobutton $w.radioDisk -text "Enable" -variable kvm -value "-accel kvm"
+    ttk::radiobutton $w.radioIso -text "Disable" -variable kvm -value ""
+    pack $w.radioDisk -side left -padx 7
+    pack $w.radioIso -side left -padx 7
+
+    pack $w -fill both
+    set $w.kvm $kvm
 }
 
 #****f* nodecfgGUI.tcl/configGUI_cpuConfig
@@ -2784,6 +2952,75 @@ proc configGUI_dockerImageApply { wi node } {
 	}
     }
 }
+
+#****f* nodecfgGUI.tcl/configGUI_qemuImageApply
+# NAME
+#   configGUI_qemuImageApply -- configure GUI - qemu image apply
+# SYNOPSIS
+#   configGUI_qemuImageApply $wi $node
+# FUNCTION
+#   Saves changes in the module with different qemuImage
+# INPUTS
+#   * wi -- widget
+#   * node -- node id
+#****
+proc configGUI_qemuImageApply { wi node } {
+    upvar 0 ::cf::[set ::curcfg]::oper_mode oper_mode
+    set qemu_image [$wi.qemuImg.img get]
+    if { $oper_mode == "edit"} {
+	if { [getNodeqemuImage $node] != $qemu_image } {
+	    setNodeqemuImage $node $qemu_image
+	    set changed 1
+	}
+    }
+}
+
+proc configGUI_qemuIsoApply { wi node } {
+    upvar 0 ::cf::[set ::curcfg]::oper_mode oper_mode
+    set qemu_iso [$wi.qemuIso.iso get]
+    if { $oper_mode == "edit"} {
+	if { [getNodeqemuIso $node] != $qemu_iso } {
+	    setNodeqemuIso $node $qemu_iso
+	    set changed 1
+	}
+    }
+}
+
+
+proc configGUI_qemuBootTypeApply { wi node } {
+    upvar #0 bootType qemu_boot_type
+    upvar 0 ::cf::[set ::curcfg]::oper_mode oper_mode
+    if { $oper_mode == "edit"} {
+        if { [getNodeqemuBootType $node] != $qemu_boot_type } {
+            setNodeqemuBootType $node $qemu_boot_type
+            set changed 1
+        }
+    }
+}
+
+proc configGUI_qemuKvmApply { wi node } {
+    upvar #0 kvm qemu_kvm
+    upvar 0 ::cf::[set ::curcfg]::oper_mode oper_mode
+    if { $oper_mode == "edit"} {
+        if { [getNodeqemuKvm $node] != $qemu_kvm } {
+            setNodeqemuKvm $node $qemu_kvm
+            set changed 1
+        }
+    }
+}
+
+
+proc configGUI_qemuMemoryApply { wi node } {
+    upvar 0 ::cf::[set ::curcfg]::oper_mode oper_mode
+    set qemu_memory [$wi.qemuMem.mem get]
+    if { $oper_mode == "edit"} {
+	if { [getNodeqemuMemory $node] != $qemu_memory } {
+	    setNodeqemuMemory $node $qemu_memory
+	    set changed 1
+	}
+    }
+}
+
 
 #****f* nodecfgGUI.tcl/configGUI_cpuConfigApply
 # NAME
