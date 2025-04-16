@@ -374,28 +374,3 @@ if {$execMode == "interactive"} {
 	deleteExperimentFiles $eid_base
     }
 }
-
-#Modification for dyanmips
-
-global RouterCisco
-set RouterCisco ""
-
-global listRouterCisco
-set listRouterCisco ""
-
-#Modification vlan
-global eidvlan modevlan booleen
-set eidvlan ""
-set modevlan ""
-set booleen "false"
-
-#Modifiation for wifi
-
-global masque dhcpIp1 dhcpIp2
-set masque "24"
-global listAP listAPIP
-set listAPIP ""
-set listAP ""
-global listSTA
-set listSTA ""
-
