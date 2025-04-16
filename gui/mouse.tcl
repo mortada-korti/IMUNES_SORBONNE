@@ -1034,7 +1034,7 @@ proc button1 { c x y button } {
     upvar 0 ::cf::[set ::curcfg]::curcanvas curcanvas
     upvar 0 ::cf::[set ::curcfg]::zoom zoom
     global activetool newlink curobj changed def_router_model
-    global router pc host lanswitch frswitch rj45 hub
+    global router pc k8s host lanswitch frswitch rj45 hub
     global oval rectangle text freeform newtext
     global lastX lastY
     global background selectbox

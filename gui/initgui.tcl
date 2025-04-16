@@ -202,6 +202,7 @@ array set nodeNamingBase {
     stpswitch stpswitch
     Pclone Pclone
     qemu qemu
+    k8s k8s_
 }
 
 # Packets required for GUI

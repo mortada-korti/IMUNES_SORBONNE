@@ -153,6 +153,7 @@ bind . <F6> {
     source "$ROOTDIR/$LIBDIR/nodes/ext.tcl"
     source "$ROOTDIR/$LIBDIR/nodes/nouveauPc.tcl"
     source "$ROOTDIR/$LIBDIR/nodes/nouveauRouteur.tcl"
+    source "$ROOTDIR/$LIBDIR/nodes/k8s.tcl"
 
     source "$ROOTDIR/$LIBDIR/nodes/frr.tcl"
     source "$ROOTDIR/$LIBDIR/nodes/xorp.tcl"

@@ -182,14 +182,14 @@ foreach file [glob -directory $ROOTDIR/$LIBDIR/runtime *.tcl] {
 # Set default L2 node list
 set l2nodes "hub lanswitch click_l2 rj45 stpswitch filter packgen ext"
 # Set default L3 node list
-set l3nodes "genericrouter frr xorp static click_l3 host pc Pclone qemu nat64 nouveauPc nouveauRouteur AP STA "
+set l3nodes "genericrouter frr xorp static click_l3 host pc Pclone qemu nat64 nouveauPc nouveauRouteur AP STA k8s"
 # Set default supported router models
 set supp_router_models "xorp frr static"
 
 if { $isOSlinux } {
     # Limit default nodes on linux
     set l2nodes "lanswitch rj45 ext"
-    set l3nodes "genericrouter frr static host pc Pclone qemu nat64 nouveauPc nouveauRouteur AP STA "
+    set l3nodes "genericrouter frr static host pc Pclone qemu nat64 nouveauPc nouveauRouteur AP STA k8s"
     set supp_router_models "frr static"
     safeSourceFile $ROOTDIR/$LIBDIR/runtime/linux.tcl
     if { $initMode == 1 } {
