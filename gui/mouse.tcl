@@ -889,7 +889,7 @@ proc button3node { c x y } {
 	    }
 	}
     
-    } elseif {$oper_mode == "exec" && [[typemodel $node].virtlayer] == "VIMAGE"  || ($oper_mode == "exec" && [[typemodel $node].virtlayer] == "NAMESPACE") || ($oper_mode == "exec" && [[typemodel $node].virtlayer] == "DYNAMIPS") || ($oper_mode == "exec" && [[typemodel $node].virtlayer] == "WIFIAP") || ($oper_mode == "exec" && [[typemodel $node].virtlayer] == "WIFISTA")} {
+    } elseif {$oper_mode == "exec" && [[typemodel $node].virtlayer] == "VIMAGE"  || ($oper_mode == "exec" && [[typemodel $node].virtlayer] == "NAMESPACE") || ($oper_mode == "exec" && [[typemodel $node].virtlayer] == "DYNAMIPS") || ($oper_mode == "exec" && [[typemodel $node].virtlayer] == "WIFIAP") || ($oper_mode == "exec" && [[typemodel $node].virtlayer] == "WIFISTA") || ($oper_mode == "exec" && [[typemodel $node].virtlayer] == "K8S")} {
 	# 
 	# Wireshark
 	#

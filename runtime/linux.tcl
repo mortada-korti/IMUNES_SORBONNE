@@ -186,7 +186,12 @@ global dynacurdir
       			 catch "exec wireshark -ki $s -o gui.window_title:$ifc@[getNodeName $node] &"
 			}
 			}
-    		} else {
+    		} elseif {[[typemodel $node].virtlayer] == "K8S"} {
+                # If the node is a Kubernetes node, run tcpdump inside the container
+                # Capture traffic on the specified interface and stream it to Wireshark in real-time
+                exec docker exec $node_id1 tcpdump -s 0 -U -w - -i $ifc 2>/dev/null |\
+     		    $wiresharkComm -o "gui.window_title:$ifc@[getNodeName $node] ($eid)" -k -i - &
+            } else {
       		 exec docker exec $eid.$node tcpdump -s 0 -U -w - -i $ifc 2>/dev/null |\
      		 $wiresharkComm -o "gui.window_title:$ifc@[getNodeName $node] ($eid)" -k -i - &
       		}
