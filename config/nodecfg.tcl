@@ -2948,6 +2948,77 @@ proc nodeCfggenIfcIPv4 { node } {
     return $cfg
 }
 
+#****f* k8s.tcl/getContainerInterfaces
+# NAME
+#   getContainerInterfaces -- extract container interface details
+# SYNOPSIS
+#   getContainerInterfaces $containerName
+# FUNCTION
+#   Retrieves and parses the list of network interfaces from a Docker container.
+#   It extracts the interface name, MAC address, IPv4 address, and all IPv6 addresses
+#   using the 'ip -j a' command in JSON format.
+# INPUTS
+#   * containerName -- name of the Docker container to inspect
+# RESULT
+#   * results -- a list of dictionaries, each representing an interface with:
+#       - ifname : interface name (e.g., eth0)
+#       - mac    : MAC address
+#       - ipv4   : IPv4 address in CIDR notation
+#       - ipv6   : list of IPv6 addresses in CIDR notation
+#****
+proc getContainerInterfaces {containerName} {
+    package require json  ;# Load the JSON package to handle JSON parsing
+
+    # Run the 'ip -j a' command inside the container to get JSON-formatted interface info
+    set raw [exec docker exec $containerName ip -j a]
+
+    # Convert the raw JSON string to a Tcl dictionary structure
+    set parsed [::json::json2dict $raw]
+
+    # This list will hold the final result for all interfaces
+    set results {}
+
+    # Iterate over each network interface found in the parsed JSON
+    foreach ifc $parsed {
+        set entry {}  ;# This will store info for the current interface
+
+        dict with ifc {
+            dict set entry ifname $ifname    ;# Store interface name
+            dict set entry mac $address      ;# Store MAC address
+        }
+
+        # Prepare containers for IP addresses
+        set ipv4 ""        ;# Only one IPv4 address expected per interface
+        set ipv6s {}       ;# There may be multiple IPv6 addresses
+
+        # If there is address info available, extract IP addresses
+        if {[dict exists $ifc addr_info]} {
+            foreach addr [dict get $ifc addr_info] {
+                set family [dict get $addr family]        ;# inet = IPv4, inet6 = IPv6
+                set ip     [dict get $addr local]         ;# IP address
+                set prefix [dict get $addr prefixlen]     ;# Subnet prefix
+                set cidr "$ip/$prefix"                    ;# Format as CIDR (e.g., 192.168.1.1/24)
+
+                if {$family eq "inet"} {
+                    set ipv4 $cidr         ;# Save the IPv4 address
+                } elseif {$family eq "inet6"} {
+                    lappend ipv6s $cidr    ;# Collect all IPv6 addresses
+                }
+            }
+        }
+
+        # Add the IP information to the current interface entry
+        dict set entry ipv4 $ipv4
+        dict set entry ipv6 $ipv6s
+
+        # Append this interface’s info to the results list
+        lappend results $entry
+    }
+
+    # Return the complete list of interface information
+    return $results
+}
+
 #****f* nodecfg.tcl/nodeCfggenIfcIPv6
 # NAME
 #   nodeCfggenIfcIPv6 -- generate interface IPv6 configuration
