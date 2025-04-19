@@ -3185,3 +3185,62 @@ proc pseudo.layer {} {
 #****
 proc pseudo.virtlayer {} {
 }
+
+#****f* nodecfg.tcl/getK8sNodeType
+# NAME
+#   getK8sNodeType -- Retrieve the Kubernetes node type (master or worker)
+# SYNOPSIS
+#   getK8sNodeType $node
+# FUNCTION
+#   Parses the node configuration to extract the type of Kubernetes node
+#   (e.g., "master" or "worker") defined by the "node-type" key.
+# INPUTS
+#   * node -- the identifier or name of the node within the IMUNES configuration
+# RESULT
+#   * Returns the type of the Kubernetes node as a string: "master" or "worker"
+# NOTES
+#   - Assumes the node configuration contains a line starting with "node-type"
+#   - Uses Tcl’s lsearch with a pattern to find the matching entry
+#****
+proc getK8sNodeType { node } {
+    # Access the current configuration of the given node using upvar (shared context)
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    # Look for the line in the node config that starts with "node-type"
+    # and return the second element of that line (which is the actual type)
+    return [lindex [lsearch -inline [set $node] "node-type *"] 1]
+}
+
+#****f* nodecfg.tcl/setK8sNodeType
+# NAME
+#   setK8sNodeType -- Set the type of a Kubernetes node (master or worker)
+# SYNOPSIS
+#   setK8sNodeType $node $type
+# FUNCTION
+#   Updates the configuration of a given node to define or change its Kubernetes type.
+#   If the "node-type" key is already present in the configuration, it will be updated.
+#   Otherwise, a new "node-type" entry will be inserted.
+# INPUTS
+#   * node -- the identifier of the node in the IMUNES topology
+#   * type -- the Kubernetes role to assign (e.g., "master" or "worker")
+# RESULT
+#   * The node's configuration is modified in-place with the appropriate node-type setting.
+# NOTES
+#   - The node-type entry is inserted immediately after the initial "type" definition
+#   - Uses upvar to modify the global configuration context
+#****
+proc setK8sNodeType { node type } {
+    # Access the configuration list of the specified node from the global context
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    # Search for the index of the element that starts with "node-type"
+    set i [lsearch [set $node] "node-type *"]
+
+    if { $i >= 0 } {
+        # If a "node-type" entry already exists, replace it with the new one
+        set $node [lreplace [set $node] $i $i "node-type $type"]
+    } else {
+        # If it doesn't exist, insert it at position 1 (after the "type" definition)
+        set $node [linsert [set $node] 1 "node-type $type"]
+    }
+}
