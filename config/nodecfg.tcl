@@ -3019,6 +3019,71 @@ proc getContainerInterfaces {containerName} {
     return $results
 }
 
+#****f* k8s.tcl/deleteEth0Block
+# NAME
+#   deleteEth0Block -- remove eth0 interface block from node configuration
+# SYNOPSIS
+#   deleteEth0Block $node
+# FUNCTION
+#   Scans the "network-config" section of a given Kubernetes node's configuration
+#   and removes the entire block related to the interface "eth0", including its
+#   MAC address, IP addresses, and related settings. The configuration is updated
+#   in-place while preserving other interface definitions and sections.
+# INPUTS
+#   * node -- node name or identifier as used in the IMUNES configuration context
+# RESULT
+#   * The global configuration of the node is updated, excluding eth0 network definitions
+# NOTES
+#   - The function uses a flag-based skip mechanism to ensure entire eth0 blocks are excluded.
+#   - Configuration entries are expected to be delimited with the "!" separator.
+#****
+proc deleteEth0Block { node } {
+    # Access the current node's configuration using the upvar mechanism (IMUNES context)
+    upvar 0 ::cf::[set ::curcfg]::$node nodecfg
+    set new_nodecfg {}  ;# This will hold the updated node configuration
+
+    # Iterate over each key-value pair in the node configuration
+    foreach pair $nodecfg {
+        set key [lindex $pair 0]
+        set val [lindex $pair 1]
+
+        # We're only interested in modifying the "network-config" section
+        if {$key eq "network-config"} {
+            set cleaned_config {}  ;# Will contain all blocks except for eth0
+            set skip 0             ;# Flag to indicate if we are skipping eth0 block
+
+            # Go through each block of the network-config
+            foreach block $val {
+                if {$skip} {
+                    # If we’re in skipping mode, skip until we hit a "!" separator
+                    if {$block eq "!"} {
+                        set skip 0  ;# End skipping once we reach the separator
+                    }
+                    continue
+                }
+
+                # Check if this block starts an "interface eth0" section
+                if {[llength $block] > 1 && [lindex $block 0] eq "interface" && [lindex $block 1] eq "eth0"} {
+                    set skip 1  ;# Begin skipping this block and its subsequent lines
+                    continue
+                }
+
+                # Otherwise, retain the block
+                lappend cleaned_config $block
+            }
+
+            # Add the cleaned network config back to the new node configuration
+            lappend new_nodecfg [list $key $cleaned_config]
+        } else {
+            # Leave other configuration parts unchanged
+            lappend new_nodecfg $pair
+        }
+    }
+
+    # Apply the updated configuration to the node
+    set nodecfg $new_nodecfg
+}
+
 #****f* nodecfg.tcl/nodeCfggenIfcIPv6
 # NAME
 #   nodeCfggenIfcIPv6 -- generate interface IPv6 configuration
