@@ -1791,3 +1791,49 @@ proc captureOnExtIfc { node command } {
 	exec $command -o "gui.window_title:[getNodeName $node] ($eid)" -k -i $eid-$node 2> /dev/null &
     }
 }
+
+#****f* exec.tcl/createKindConfig
+# NAME
+#   createKindConfig -- Generate a KIND cluster configuration file
+# SYNOPSIS
+#   createKindConfig master_count worker_count
+# FUNCTION
+#   Dynamically creates a Kubernetes cluster configuration file compatible with
+#   KIND (Kubernetes IN Docker), specifying the number of master and worker nodes.
+#   Each node entry includes the custom Docker image to be used.
+# INPUTS
+#   * master_count -- number of control-plane (master) nodes
+#   * worker_count -- number of worker nodes
+# RESULT
+#   * path -- absolute file path to the generated configuration file
+#****
+proc createKindConfig { master_count worker_count } {
+    global dynacurdir
+
+    # Define the output path for the kind cluster configuration file
+    set config_file "$dynacurdir/Kind/kind-config.yaml"
+
+    # Open the file in write mode
+    set fd [open $config_file w]
+
+    # Write the base cluster config structure
+    puts $fd "kind: Cluster"
+    puts $fd "apiVersion: kind.x-k8s.io/v1alpha4"
+    puts $fd "nodes:"
+
+    # Add the desired number of control-plane (master) nodes
+    for {set i 0} {$i < $master_count} {incr i} {
+        puts $fd "- role: control-plane\n  image: mortada99/kind-imunes"
+    }
+
+    # Add the desired number of worker nodes
+    for {set i 0} {$i < $worker_count} {incr i} {
+        puts $fd "- role: worker\n  image: mortada99/kind-imunes"
+    }
+
+    # Close the config file
+    close $fd
+
+    # Return the full path to the generated config file
+    return $config_file
+}
