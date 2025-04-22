@@ -178,9 +178,12 @@ proc l3IfcName {lnode rnode} {
     } 
     if {[nodeType $lnode] == "routeur"} {
     return "f"
-    } else {
-	return "eth"
+    } 
+    # If the left node is a Kubernetes node, return "veth"
+    if {[nodeType $lnode] == "k8s"} {
+        return "veth"
     }
+	return "eth"
 }
 
 #****f* editor.tcl/listLANNodes
