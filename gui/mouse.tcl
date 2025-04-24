@@ -1897,6 +1897,11 @@ proc deleteSelection {} {
 
     foreach lnode [selectedNodes] {
 	if { $lnode != "" } {
+ 		# Special handling if the selected node is of type 'k8s'
+		if { [typemodel $lnode] == "k8s" } {
+			# Remove its eth0 interface configuration before deletion
+			removeEth0InterfaceFromNode $lnode
+		}
 	    removeGUINode $lnode
 	}
 	if { [isAnnotation $lnode] } {
@@ -1908,6 +1913,73 @@ proc deleteSelection {} {
     updateUndoLog
     .panwin.f1.c config -cursor left_ptr
     .bottom.textbox config -text ""
+}
+
+#****f* mouse.tcl/removeEth0InterfaceFromNode
+# NAME
+#   removeEth0InterfaceFromNode -- Remove eth0 interface from a node's configuration
+# SYNOPSIS
+#   removeEth0InterfaceFromNode $node
+# FUNCTION
+#   Cleans up a node's configuration by removing the 'interface eth0' section
+#   and its corresponding 'interface-peer' reference. This is used when eth0 is no longer
+#   valid or needed in the IMUNES experiment (e.g., after reconfiguring K8s nodes).
+# INPUTS
+#   * node -- the identifier of the node in the IMUNES topology
+# RESULT
+#   * The node's configuration is updated in-place with eth0-related entries removed.
+# NOTES
+#   - The function ensures both the interface definition and the peer reference are removed.
+#   - Configuration is updated in two passes: one for network-config and one for interface-peer.
+#   - Uses upvar to operate on the shared experiment state context.
+#****
+proc removeEth0InterfaceFromNode {node} {
+    # Access the node's configuration from the current experiment
+    upvar 0 ::cf::[set ::curcfg]::$node nodeConf
+
+    # Initialize a new configuration container
+    set newConf {}
+
+    # First pass: remove the 'interface eth0' section from 'network-config'
+    foreach {key val} $nodeConf {
+        if {$key eq "network-config"} {
+            set newNetconf {}
+
+            # Iterate over the configuration sections inside network-config
+            foreach section $val {
+                # Skip the entire eth0 interface section
+                if {[lindex $section 0] eq "interface" && [lindex $section 1] eq "eth0"} {
+                    continue
+                }
+                # Keep all other sections
+                lappend newNetconf $section
+            }
+
+            # Add the cleaned network-config back to the new configuration
+            lappend newConf $key $newNetconf
+        } else {
+            # Copy all other config keys and values as-is
+            lappend newConf $key $val
+        }
+    }
+
+    # Second pass: remove only the interface-peer entry for eth0
+    set finalConf {}
+    foreach item $newConf {
+        # Check for interface-peer items
+        if {[string match "interface-peer {*}" $item]} {
+            set ifpeer [lindex $item 1]
+            # Skip if it's an interface-peer {eth0 ...}
+            if {[llength $ifpeer] == 2 && [lindex $ifpeer 0] eq "eth0"} {
+                continue
+            }
+        }
+        # Keep all other entries
+        lappend finalConf $item
+    }
+
+    # Apply the final cleaned configuration back to the node
+    set nodeConf $finalConf
 }
 
 #****f* editor.tcl/removeIPv4nodes
