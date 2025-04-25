@@ -338,6 +338,10 @@ proc loadCfg { cfg } {
 			type {
 			    lappend $object "type $value"
 			}
+ 			node-type {
+				# Set a more specific type (e.g., master or worker for k8s)
+				lappend $object "node-type $value"
+			}
 			mirror {
 			    lappend $object "mirror $value"
 			}
