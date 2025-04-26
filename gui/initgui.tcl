@@ -916,10 +916,14 @@ menu .menubar.events -tearoff  0
 menu .menubar.experiment -tearoff 0
 .menubar.experiment add command -label "Execute" -underline 0 \
 	-command "setOperMode exec"
+# Adds a new item labeled "Create Cluster" to the "experiment" menu in the menubar.
+# -command: When selected, it triggers the Tcl procedure setOperMode with the argument "kind".
+.menubar.experiment add command -label "Create Cluster" -underline 0 \
+	-command "setOperMode kind"
 .menubar.experiment add command -label "Terminate" -underline 0 \
 	-command "setOperMode edit" -state disabled
 .menubar.experiment add command -label "Restart" -underline 0 \
-	-command "setOperMode edit; setOperMode exec" -state disabled
+	-command "setOperMode edit; setOperMode kind; setOperMode exec" -state disabled
 .menubar.experiment add separator	
 .menubar.experiment add command -label "Attach to experiment" -underline 0 \
 	-command "attachToExperimentPopup" 
