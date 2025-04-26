@@ -38,6 +38,7 @@ set brguielements {}
 set selectedFilterRule ""
 set selectedPackgenPacket ""
 set router_ConfigModel "frr"
+set k8s_ConfigType "worker"
 
 #****f* nodecfgGUI.tcl/nodeConfigGUI
 # NAME
@@ -275,7 +276,7 @@ proc configGUI_addTree { wi node } {
     }
 
 #Modification for namespace
-    if {( [[typemodel $node].virtlayer] == "VIMAGE" || [[typemodel $node].virtlayer] == "NAMESPACE" || [[typemodel $node].virtlayer] == "WIFIAP" ) && [nodeType $node] != "click_l2"} {
+    if {( [[typemodel $node].virtlayer] == "VIMAGE" || [[typemodel $node].virtlayer] == "NAMESPACE" || [[typemodel $node].virtlayer] == "K8S" || [[typemodel $node].virtlayer] == "WIFIAP" ) && [nodeType $node] != "click_l2"} {
 	$wi.panwin.f1.tree insert {} end -id logIfcFrame -text \
 	    "Logical Interfaces" -open true -tags logIfcFrame
 
@@ -348,7 +349,7 @@ proc configGUI_addTree { wi node } {
 		configGUI_showIfcInfo $wi.panwin.f2 0 $node [$wi.panwin.f1.tree next $ifc]
 	    }"
     }
-    if {[[typemodel $node].virtlayer] == "VIMAGE" || [[typemodel $node].virtlayer] == "NAMESPACE" || [[typemodel $node].virtlayer] == "WIFIAP" } {
+    if {[[typemodel $node].virtlayer] == "VIMAGE" || [[typemodel $node].virtlayer] == "K8S" || [[typemodel $node].virtlayer] == "NAMESPACE" || [[typemodel $node].virtlayer] == "WIFIAP" } {
 	$wi.panwin.f1.tree tag bind [lindex [lsort -ascii [ifcList $node]] end] <Key-Down> \
 		"configGUI_showIfcInfo $wi.panwin.f2 0 $node logIfcFrame"
 
@@ -458,7 +459,7 @@ proc configGUI_refreshIfcsTree { wi node } {
 	}
     }
 
-    if {[[typemodel $node].virtlayer] == "VIMAGE" || [[typemodel $node].virtlayer] == "NAMESPACE" || [[typemodel $node].virtlayer] == "WIFIAP"} {
+    if {[[typemodel $node].virtlayer] == "VIMAGE" || [[typemodel $node].virtlayer] == "K8S" || [[typemodel $node].virtlayer] == "NAMESPACE" || [[typemodel $node].virtlayer] == "WIFIAP"} {
 
 	$wi insert {} end -id logIfcFrame -text \
 	    "Logical Interfaces" -open true -tags logIfcFrame
@@ -1004,6 +1005,10 @@ configFichier_STA $node
 }
 
 
+ if {[typemodel $node] == "k8s"} {
+
+configGUI_K8SApply $wi $node
+}
 
 
     foreach guielement $guielements {
@@ -1089,9 +1094,7 @@ configFichier_STA $node
 
 
             configGUI_refreshIfcsTree .popup.panwin.f1.tree $node
-	} else {
-
-    }
+	} 
     }
 	redrawAll
 	updateUndoLog
