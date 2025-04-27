@@ -8143,3 +8143,61 @@ global listIfcSTA
 
 }
 
+#****f* nodecfgGUI.tcl/configGUI_K8S
+# NAME
+#   configGUI_K8S -- Display GUI for Kubernetes node configuration
+# SYNOPSIS
+#   configGUI_K8S $wi $node
+# FUNCTION
+#   Constructs and displays a graphical interface section within IMUNES
+#   for configuring the Kubernetes node type (Master or Worker).
+#   Provides two radio buttons for the user to select the role.
+# INPUTS
+#   * wi   -- the widget path prefix (used to attach new frames/elements)
+#   * node -- the name of the node whose type is being configured
+# RESULT
+#   * Adds a labeled section with radio buttons to the GUI
+#   * Tracks the node’s type choice in a global variable for later use
+# NOTES
+#   - This procedure uses the Tcl/Tk ttk:: widgets to maintain UI consistency
+#   - The selected role is stored in the global variable k8s_ConfigType
+#   - The GUI state is tracked in the global list `guielements` for management
+#****
+proc configGUI_K8S { wi node } {
+    # Access global variables: current mode and GUI elements tracker
+    upvar 0 ::cf::[set ::curcfg]::oper_mode oper_mode
+    global k8s_ConfigType guielements
+
+    # Keep track of this GUI section for later refresh or cleanup
+    lappend guielements configGUI_K8S
+
+    # Create the main container for the Kubernetes node type settings
+    ttk::frame $wi.nodeType -relief groove -borderwidth 2 -padding 2
+    set w $wi.nodeType  ;# Alias for easier reference
+
+    # Create a sub-frame for the "Node Type" selection
+    ttk::frame $w.type -padding 2
+    ttk::label $w.type.label -text "Node Type:"  ;# Label text
+
+    # Radio button for selecting "Master" role
+    ttk::radiobutton $w.type.master -text "Master" \
+        -variable k8s_ConfigType -value "master"
+        
+    # Radio button for selecting "Worker" role
+    ttk::radiobutton $w.type.worker -text "Worker" \
+        -variable k8s_ConfigType -value "worker"
+
+    # Set the default selected option based on the node’s current type
+    set k8s_ConfigType [getK8sNodeType $node]
+
+    # Pack the elements horizontally inside the sub-frame
+    pack $w.type.label -side left -padx 2
+    pack $w.type.master -side left -padx 2
+    pack $w.type.worker -side left -padx 2
+
+    # Add the "type" sub-frame to the main nodeType frame
+    pack $w.type -fill both
+
+    # Add the full nodeType frame to the GUI
+    pack $wi.nodeType -fill both
+}
