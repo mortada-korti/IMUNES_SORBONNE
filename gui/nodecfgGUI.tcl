@@ -8201,3 +8201,37 @@ proc configGUI_K8S { wi node } {
     # Add the full nodeType frame to the GUI
     pack $wi.nodeType -fill both
 }
+
+#****f* nodecfgGUI.tcl/configGUI_K8SApply
+# NAME
+#   configGUI_K8SApply -- Apply Kubernetes node type selection from GUI
+# SYNOPSIS
+#   configGUI_K8SApply $wi $node
+# FUNCTION
+#   Applies the selected Kubernetes node type (master or worker) to the
+#   current node’s configuration in the IMUNES environment.
+#   This function is typically called when the user confirms their GUI selection.
+# INPUTS
+#   * wi   -- GUI widget path prefix (not used directly in this function)
+#   * node -- name of the node to which the selected type is applied
+# RESULT
+#   * Updates the node’s configuration to reflect the new Kubernetes role
+#   * Flags the configuration as modified for further processing
+# NOTES
+#   - Uses the global variable `k8s_ConfigType` which stores the selection
+#     made in the configGUI_K8S interface.
+#   - Sets the `changed` variable to notify IMUNES that a change has occurred.
+#****
+proc configGUI_K8SApply { wi node } {
+    # Access the current operation mode from the configuration
+    upvar 0 ::cf::[set ::curcfg]::oper_mode oper_mode
+
+    # Access the selected node type (either "master" or "worker") from the GUI
+    global k8s_ConfigType
+
+    # Apply the selected type to the node configuration
+    setK8sNodeType $node $k8s_ConfigType
+
+    # Mark the configuration as changed (used to trigger updates/saves)
+    set changed 1
+}
