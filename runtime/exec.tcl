@@ -869,6 +869,11 @@ proc l3node.instantiate { eid node } {
    configureVTYSHfrr $eid $node
 }
 
+proc l3node.instantiateK { eid node } {
+    prepareFilesystemForNode $node
+    createNodeContainerK $node
+	createNodePhysIfcs $node
+    createNodeLogIfcs $node
 }
 
 # modification for namespace by adding new function
