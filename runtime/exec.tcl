@@ -1109,6 +1109,10 @@ proc deployCfg {} {
 	}
 	displayBatchProgress $step $allNodes
 
+if {$type == "k8s"} {
+[typemodel $node].instantiate $eid $node
+
+}
 if {$type == "pcn"} {
 [typemodel $node].instantiate $eid $node
 
