@@ -112,6 +112,8 @@ proc setOperMode { mode } {
 	return
     }
 
+	APExists
+
     if { !$cfgDeployed && $mode == "exec" } {
 	if { !$isOSlinux && !$isOSfreebsd } {
 	    after idle {.dialog1.msg configure -wraplength 4i}
@@ -1798,7 +1800,36 @@ proc captureOnExtIfc { node command } {
 	exec xterm -T "Capturing $eid-$node" -e "tcpdump -ni $eid-$node" 2> /dev/null &
     } else {
 	exec $command -o "gui.window_title:[getNodeName $node] ($eid)" -k -i $eid-$node 2> /dev/null &
+#****f* exec.tcl/APExists
+# NAME
+#   APExists -- Clean up all WiFi Access Point nodes in the topology
+# SYNOPSIS
+#   APExists
+# FUNCTION
+#   Iterates through all nodes in the current topology and performs
+#   cleanup actions on any node identified as a WiFi Access Point (wifiAP).
+#   Although its name suggests it checks for existence, its actual purpose
+#   is to trigger cleanup routines for AP nodes if they are found.
+# INPUTS
+#   * None
+# RESULT
+#   * 0 -- Always returns 0, regardless of whether AP nodes were found.
+#          This function serves as a trigger rather than a validator.
+#****
+proc APExists { } {
+    upvar 0 ::cf::[set ::curcfg]::node_list node_list
+
+    # Loop through all nodes in the current topology
+    foreach node $node_list {
+        # If the node is of type "wifiAP", perform cleanup on it
+        if {[typemodel $node] == "wifiAP"} {
+            cleanupAP $node
+        }
     }
+
+    # Always return 0 (this function acts more like a cleanup trigger than a check)
+    return 0
+}
 }
 
 #****f* exec.tcl/createKindConfig
