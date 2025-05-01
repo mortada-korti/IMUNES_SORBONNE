@@ -582,6 +582,58 @@ proc createNodeContainer { node } {
     }
 
 }
+
+#****f* linux.tcl/createNodeContainerK
+# NAME
+#   createNodeContainerK -- Assign and rename a Kind container for a Kubernetes node in IMUNES
+# SYNOPSIS
+#   createNodeContainerK node
+# FUNCTION
+#   This procedure maps an IMUNES Kubernetes node (master or worker) to a Docker container
+#   created by Kind. It handles proper assignment and renaming of the container to match
+#   the IMUNES experiment node identifier. It also ensures that worker containers are not reused
+#   by updating the global cluster_nodes list.
+#
+# INPUTS
+#   * node -- Logical name of the Kubernetes node in the IMUNES experiment
+#
+# SIDE EFFECTS
+#   * Renames the matching Docker container to "<experimentID>.<node>"
+#   * Updates the global variable cluster_nodes to reflect assigned workers
+#   * Prints status of the container renaming in the console
+#
+# RESULT
+#   * The Docker container for the node is uniquely renamed and linked to the IMUNES node
+#****
+proc createNodeContainerK { node } {
+    # Retrieve the current experiment ID
+    upvar 0 ::cf::[set ::curcfg]::eid eid
+    global cluster_nodes
+
+    # Default container name is the master node: "kind-control-plane"
+    set node_name "kind-control-plane"
+
+    # Remove "kind-control-plane" from the list of available cluster nodes
+    set cluster_nodes [lsearch -all -inline -not -exact $cluster_nodes "kind-control-plane"]
+
+    # Get the Kubernetes node type (master or worker)
+    set nodeType [getK8sNodeType $node]
+    set node_id "$eid.$node"
+
+    # If it's a worker node, take the first available worker from the cluster list
+    if {$nodeType != "master"} {
+        set node_name [lindex $cluster_nodes 0]
+        # Remove this worker from the cluster list to avoid reusing it
+        set cluster_nodes [lsearch -all -inline -not -exact $cluster_nodes $node_name]
+    }
+
+    # Rename the docker container to match the IMUNES node ID
+    set result [catch {exec docker rename $node_name $node_id} output]
+
+    # Print confirmation in the terminal
+    puts "Container $node_id is running ($node_name)"
+}
+
 #****f* linux.tcl/createNodeQemu
 # NAME
 #   createNodeQemu -- creates a virtual node container
