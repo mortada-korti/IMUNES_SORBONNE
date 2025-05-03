@@ -1387,7 +1387,13 @@ foreach node $node_list {
 	} elseif { [[typemodel $node].virtlayer] == "QEMU" } {
 
         cleanupQEMU $node
-	} 
+	} elseif { [[typemodel $node].virtlayer] == "K8S" } {
+    # Remove 'eth0' interface-peer entry from the node's configuration
+    removeEth0InterfaceFromNode $node
+    
+    # Remove the full block of 'interface eth0' from the network-config section
+    deleteEth0Block $node
+	}    
     }
 
 
