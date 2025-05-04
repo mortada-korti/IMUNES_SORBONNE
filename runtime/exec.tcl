@@ -1808,6 +1808,40 @@ proc captureOnExtIfc { node command } {
 	exec xterm -T "Capturing $eid-$node" -e "tcpdump -ni $eid-$node" 2> /dev/null &
     } else {
 	exec $command -o "gui.window_title:[getNodeName $node] ($eid)" -k -i $eid-$node 2> /dev/null &
+    }
+}
+
+#****f* exec.tcl/k8sExists
+# NAME
+#   k8sExists -- Check if the topology contains any Kubernetes nodes
+# SYNOPSIS
+#   k8sExists
+# FUNCTION
+#   Scans the current list of nodes in the topology and checks if any node
+#   is of the Kubernetes type (i.e., type "k8s"). This is useful to determine
+#   whether Kubernetes-specific logic or deployment steps should be executed.
+# INPUTS
+#   * None
+# RESULT
+#   * 1 (true)  -- If at least one "k8s" node is present
+#   * 0 (false) -- If no "k8s" nodes are found in the current topology
+#****
+proc k8sExists { } {
+    # Access the current list of nodes in the experiment topology
+    upvar 0 ::cf::[set ::curcfg]::node_list node_list
+
+    # Loop through all nodes in the current topology
+    foreach node $node_list {
+        # If at least one node is of type "k8s", return 1 (true)
+        if {[typemodel $node] == "k8s"} {
+            return 1
+        }
+    }
+
+    # No "k8s" node found, return 0 (false)
+    return 0
+}
+
 #****f* exec.tcl/APExists
 # NAME
 #   APExists -- Clean up all WiFi Access Point nodes in the topology
