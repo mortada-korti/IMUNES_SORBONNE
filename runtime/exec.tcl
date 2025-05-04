@@ -264,7 +264,7 @@ proc spawnShellExec {} {
 
     # if the de type of node is different of namespace or dynamips or vimage do nothing 
     # else display terminal of node
-    if { [[typemodel $node].virtlayer] != "VIMAGE" && [[typemodel $node].virtlayer] != "NAMESPACE" && [[typemodel $node].virtlayer] != "DYNAMIPS" && [[typemodel $node].virtlayer] != "WIFIAP" && [[typemodel $node].virtlayer] != "WIFISTA"} {
+    if { [[typemodel $node].virtlayer] != "VIMAGE" && [[typemodel $node].virtlayer] != "NAMESPACE" && [[typemodel $node].virtlayer] != "DYNAMIPS" && [[typemodel $node].virtlayer] != "WIFIAP" && [[typemodel $node].virtlayer] != "WIFISTA" && [[typemodel $node].virtlayer] != "K8S"} {
 	nodeConfigGUI .panwin.f1.c $node
     } else {
       set type [nodeType $node]
@@ -962,7 +962,9 @@ if {$type == "routeur"} {
    runConfOnNodeSTA $node
 } elseif {$type == "qemu"} {
       
-} 
+} elseif {$type == "k8s"} {
+	runConfOnNodeK $node
+}  else {
     startIfcsNode $node
     runConfOnNode $node
 }
@@ -1134,7 +1136,7 @@ if {$type == "wifiSTA"} {
 }
 
 
-if {$type != "pseudo"  && $type != "pcn" && $type != "wifiAP" && $type != "wifiSTA"} {
+if {$type != "pseudo"  && $type != "pcn" && $type != "wifiAP" && $type != "wifiSTA" && $type != "k8s"} {
 	    [typemodel $node].instantiate $eid $node
 	    pipesExec ""
 	} else {
