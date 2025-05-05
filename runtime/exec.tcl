@@ -1872,6 +1872,49 @@ proc APExists { } {
     # Always return 0 (this function acts more like a cleanup trigger than a check)
     return 0
 }
+
+#****f* exec.tcl/mw_nodes_count
+# NAME
+#   mw_nodes_count -- Count the number of Kubernetes master and worker nodes
+# SYNOPSIS
+#   mw_nodes_count
+# FUNCTION
+#   Scans all nodes in the current IMUNES topology and identifies which ones
+#   are Kubernetes nodes. It then determines whether each "k8s" node is a 
+#   master or a worker by checking its assigned node-type and keeps a count 
+#   of each.
+# INPUTS
+#   * None
+# RESULT
+#   * list -- A list containing two integers:
+#             {number_of_master_nodes number_of_worker_nodes}
+#****
+proc mw_nodes_count { } {
+    upvar 0 ::cf::[set ::curcfg]::node_list node_list
+
+    # Initialize counters for master and worker nodes
+    set master_count 0
+    set worker_count 0
+
+    # Loop through all nodes in the topology
+    foreach node $node_list {
+        # Check if the node is of type "k8s"
+        if { [typemodel $node] == "k8s" } {
+            # Get the node's Kubernetes role (master or worker)
+            set model [getK8sNodeType $node]
+
+            # Increment the corresponding counter
+            if { $model == "master" } {
+                incr master_count
+            } elseif { $model == "worker" } {
+                incr worker_count
+            }
+        }
+    }
+
+    # Return both counts as a list: {masters workers}
+    return [list $master_count $worker_count]
+}
 }
 
 #****f* exec.tcl/createKindConfig
