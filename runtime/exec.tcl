@@ -1915,6 +1915,63 @@ proc mw_nodes_count { } {
     # Return both counts as a list: {masters workers}
     return [list $master_count $worker_count]
 }
+
+#****f* exec.tcl/validateK8sNodes
+# NAME
+#   validateK8sNodes -- Validate the Kubernetes topology before creating a cluster
+# SYNOPSIS
+#   validateK8sNodes
+# FUNCTION
+#   Checks the validity of the Kubernetes topology within the current IMUNES
+#   experiment. Ensures there is exactly one master node and no more than four
+#   worker nodes as required by KIND. Displays error messages via GUI dialogs
+#   if the configuration is invalid. If valid, disables UI interaction and
+#   launches the cluster creation process.
+# INPUTS
+#   * None
+# RESULT
+#   * 1 -- If the topology is valid and the cluster creation is initiated
+#   * 0 -- If the topology is invalid or no Kubernetes nodes are present
+#****
+proc validateK8sNodes { } {
+    upvar 0 ::cf::[set ::curcfg]::node_list node_list
+
+    # Get the number of master and worker nodes
+    lassign [mw_nodes_count] master_count worker_count
+
+    # Continue only if there is at least one k8s node
+    if {$master_count > 0 || $worker_count > 0} {
+
+        # Rule: Only one master is allowed
+        if { $master_count > 1 } {
+            tk_messageBox -icon error -title "Invalid Configuration" \
+                -message "There cannot be more than one master node in the Kubernetes cluster."
+            return 0
+        } elseif { $master_count == 0 } {
+            # Rule: There must be at least one master
+            tk_messageBox -icon error -title "Invalid Configuration" \
+                -message "There must be at least one master node in the Kubernetes cluster."
+            return 0
+        } elseif { $master_count == 1 && $worker_count > 4 } {
+            # Rule: Maximum 4 worker nodes allowed by KIND
+            tk_messageBox -icon error -title "Invalid Configuration" \
+                -message "The maximum number of worker nodes supported by KIND is 4."
+            return 0
+        }
+
+        # Disable UI interactions during cluster creation
+        foreach b { link link_layer net_layer } {
+            .panwin.f1.left.$b configure -state disabled
+        }
+
+        # Start cluster creation
+        createCluster $master_count $worker_count
+        return 1
+
+    } else {
+        # No k8s nodes selected, nothing to validate
+        return 0
+    } 
 }
 
 #****f* exec.tcl/createKindConfig
