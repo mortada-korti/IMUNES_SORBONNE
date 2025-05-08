@@ -2019,3 +2019,73 @@ proc createKindConfig { master_count worker_count } {
     # Return the full path to the generated config file
     return $config_file
 }
+
+#****f* exec.tcl/createCluster
+# NAME
+#   createCluster -- Launch a Kubernetes cluster with KIND based on given topology
+# SYNOPSIS
+#   createCluster master_count worker_count
+# FUNCTION
+#   Creates a Kubernetes cluster using KIND (Kubernetes IN Docker), based on the number
+#   of master and worker nodes defined in the IMUNES topology. Displays a progress window 
+#   with real-time feedback and animation while the cluster is being provisioned.
+# INPUTS
+#   * master_count -- number of master (control-plane) nodes
+#   * worker_count -- number of worker nodes
+# RESULT
+#   * 1 -- if the cluster is successfully created
+#   * 0 -- if the cluster creation fails
+#****
+proc createCluster { master_count worker_count } {
+    # Access the global list of nodes from the current experiment context
+    upvar 0 ::cf::[set ::curcfg]::node_list node_list
+
+    # Show a progress bar window to indicate the cluster creation steps
+    show_progress_window
+
+    # If a Kubernetes cluster already exists, delete it before creating a new one
+    if { [clusterExists] } {
+        deleteCluster
+    }
+
+    # Generate the Kind cluster configuration file based on master/worker counts
+    set config_file [createKindConfig $master_count $worker_count]
+
+    # Define the Kind command to create the cluster using the generated config
+    set command "kind create cluster --config $config_file"
+
+    # Update the progress bar to 10% with an appropriate message
+    update_progress 10 "Preparing configuration..."
+
+    # Move progress forward to 20% and notify user that creation is starting
+    set ::progress_value 20
+    update_progress $::progress_value "Starting creation of cluster..."
+
+    # Open a non-blocking pipe to capture the real-time output of the kind command
+    # '2>@1' redirects stderr to stdout
+    set pipe [open "| $command 2>@1" r]
+    fconfigure $pipe -blocking 0
+
+    # Set up asynchronous reading of the command output using a callback
+    fileevent $pipe readable [list read_pipe_output $pipe]
+
+    # Store the PID of the Kind process for monitoring completion
+    set ::kind_process [pid $pipe]
+
+    # Wait until the kind process completes
+    vwait ::kind_process
+
+    # Close the progress window once cluster creation is done
+    if {[winfo exists $::progress_window]} {
+        destroy $::progress_window
+    }
+
+    # Verify that the cluster was created successfully by listing the nodes
+    if {[catch {exec kind get nodes} cluster_nodes]} {
+        return 0 ;# Failure
+    } else {
+        set ::cluster_nodes $cluster_nodes
+        return 1 ;# Success
+    }
+}
+
