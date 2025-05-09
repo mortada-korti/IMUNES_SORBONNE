@@ -2089,3 +2089,38 @@ proc createCluster { master_count worker_count } {
     }
 }
 
+#****f* exec.tcl/deleteCluster
+# NAME
+#   deleteCluster -- Deletes an existing Kubernetes cluster created with KIND
+# SYNOPSIS
+#   deleteCluster
+# FUNCTION
+#   This function checks whether there are any Kubernetes nodes present in the topology.
+#   If so, it issues a command to delete the currently running KIND (Kubernetes IN Docker)
+#   cluster. It gracefully handles errors and returns the appropriate status code.
+# INPUTS
+#   * (none) -- Operates on the currently loaded IMUNES topology.
+# RESULT
+#   * 1 -- Cluster deletion was successful
+#   * 0 -- Cluster deletion failed or there was no cluster to delete
+#****
+proc deleteCluster { } {
+    # Access the global list of nodes from the current experiment context
+    upvar 0 ::cf::[set ::curcfg]::node_list node_list
+
+    # Check if there are any Kubernetes nodes in the current topology
+    if { [k8sExists] }  {
+
+        # Define the command to delete the current Kind cluster
+        set command "kind delete cluster"
+
+        # Execute the command and capture any potential errors
+        if {[catch {exec -ignorestderr {*}$command} result]} {
+            # If there was an error while deleting the cluster, return 0 (failure)
+            return 0
+        } else {
+            # If the deletion was successful, return 1 (success)
+            return 1
+        }
+    }
+}
