@@ -2124,3 +2124,39 @@ proc deleteCluster { } {
         }
     }
 }
+
+#****f* exec.tcl/clusterExists
+# NAME
+#   clusterExists -- Checks whether a Kind (Kubernetes IN Docker) cluster currently exists
+# SYNOPSIS
+#   clusterExists
+# FUNCTION
+#   This function determines whether there is an active KIND cluster available
+#   by executing 'kind get clusters'. If the command succeeds and returns at least
+#   one non-empty cluster name, it returns 1. If no clusters are found or the command
+#   fails, it returns 0.
+# INPUTS
+#   * (none) -- Operates globally.
+# RESULT
+#   * 1 -- A KIND cluster is currently running.
+#   * 0 -- No KIND cluster exists or the check failed.
+#****
+proc clusterExists {} {
+    # Try to get the list of existing Kind clusters
+    # If the command fails, catch the error and return 0
+    if {[catch {exec kind get clusters} clusters]} {
+        return 0
+    }
+
+    # Iterate through each line in the output
+    foreach line [split $clusters \n] {
+        # If the line is not empty and doesn't match the "no cluster" message
+        if {[string trim $line] ne "" && ![string match "*No kind clusters found*" $line]} {
+            # A cluster exists, so return 1
+            return 1
+        }
+    }
+
+    # If we didn't find any valid cluster entries, return 0
+    return 0
+}
