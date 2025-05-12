@@ -114,6 +114,23 @@ proc setOperMode { mode } {
 
 	APExists
 
+	if { $mode == "exec" && [clusterExists] } {
+		# If we are in execution mode and a cluster already exists,
+		# and if the "Create Cluster" button is enabled, we delete the current cluster
+		set cluster_state [.menubar.experiment entrycget "Create Cluster" -state]
+		if {$cluster_state eq "normal"} {
+			deleteCluster
+		} 
+	}
+
+	if { $mode == "exec" && [k8sExists] && ![clusterExists] } {
+		# If Kubernetes nodes exist but no cluster is currently running,
+		# display an error message to prevent running the experiment
+		tk_messageBox -icon error -title "Invalid Configuration" \
+			-message "You can't run experiment before creating a Kubernetes cluster."
+		return
+	}
+
     if { !$cfgDeployed && $mode == "exec" } {
 	if { !$isOSlinux && !$isOSfreebsd } {
 	    after idle {.dialog1.msg configure -wraplength 4i}
