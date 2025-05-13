@@ -1925,6 +1925,61 @@ proc startIfcsNode { node } {
     }
     exec sh << $cmds
 }
+
+#****f* linux.tcl/startIfcsNodeK
+# NAME
+#   startIfcsNodeK -- Bring up and configure interfaces for a Kubernetes node
+# SYNOPSIS
+#   startIfcsNodeK node
+# FUNCTION
+#   This function iterates over all network interfaces of a given Kubernetes node (within IMUNES),
+#   and performs configuration actions such as setting the MTU and bringing interfaces up if needed.
+#   The operations are performed inside the network namespace of the node using `nsenter`.
+#
+#   This is especially useful for initializing veth pairs and the loopback interface within the
+#   Docker container or namespace representing the node.
+#
+# INPUTS
+#   * node -- Logical name of the Kubernetes node in the IMUNES experiment
+#
+# SIDE EFFECTS
+#   * Executes system commands to configure interfaces inside the network namespace
+#   * Brings up active interfaces and sets correct MTU values
+#
+# RESULT
+#   * All relevant interfaces are properly initialized and configured
+#****
+proc startIfcsNodeK { node } {
+    # Access the current experiment ID
+    upvar 0 ::cf::[set ::curcfg]::eid eid
+
+    set cmds ""  ;# Initialize the shell command string
+    set nodeNs [getNodeNamespace $node]  ;# Get the network namespace of the node (PID or ID)
+
+    # Iterate over all interfaces of the node
+    foreach ifc [allIfcList $node] {
+        # Get the MTU of the interface
+        set mtu [getIfcMTU $node $ifc]
+        set tmpifc $ifc
+
+        # Rename loopback interface to standard 'lo'
+        if { $ifc == "lo0" } {
+            set tmpifc lo
+        }
+
+        # If interface state is "up", bring it up with MTU
+        if {[getIfcOperState $node $ifc] == "up"} {
+            append cmds "\n nsenter -n -t $nodeNs ip link set dev $tmpifc up mtu $mtu"
+        } else {
+            # Else, just set the MTU (interface stays down)
+            append cmds "\n nsenter -n -t $nodeNs ip link set dev $tmpifc mtu $mtu"
+        }
+    }
+
+    # Execute all prepared commands in a shell using a here-document (<<)
+    exec sh << $cmds
+}
+
 # modification for namespace by adding new function
 # activate all interface and give a mtu to namespace node using ip netns
 proc startIfcsNodeN { node } {
