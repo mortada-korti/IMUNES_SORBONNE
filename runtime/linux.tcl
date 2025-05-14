@@ -2098,6 +2098,79 @@ proc runConfOnNodeN { node } {
 
 }
 
+#****f* linux.tcl/runConfOnNodeK
+# NAME
+#   runConfOnNodeK -- Configure eth0 interface for Kubernetes container node
+# SYNOPSIS
+#   runConfOnNodeK node
+# FUNCTION
+#   This function retrieves the IP, MAC, and interface data from the Docker container
+#   representing a Kubernetes node. It reconstructs the configuration for the eth0 interface
+#   inside the IMUNES configuration structure to reflect the current state of the container.
+#
+#   The function ensures that any previous eth0 configuration is removed before inserting the
+#   new one. This prevents stale or duplicate entries. Only eth0 is processed (ignores veths, etc.).
+#
+# INPUTS
+#   * node -- The logical name of the node in the IMUNES topology
+#
+# SIDE EFFECTS
+#   * Calls Docker to retrieve interface information
+#   * Updates node configuration by removing old eth0 and adding fresh interface data
+#
+# RESULT
+#   * Updated node config with proper eth0 setup, including MAC, IPv4, and IPv6
+#   * Adds corresponding interface-peer entry for linking
+#****
+proc runConfOnNodeK { node } {
+    # Retrieve the experiment ID
+    upvar 0 ::cf::[set ::curcfg]::eid eid
+    # Get the configuration list for the specific node
+    upvar 0 ::cf::[set ::curcfg]::$node $node
+
+    # Construct the Docker container name associated with this node
+    set node_id "$eid.$node"
+
+    # Fetch all interface information from the container using 'ip -j a'
+    set results [getContainerInterfaces $node_id]
+
+    # Remove any existing 'eth0' configuration to avoid duplicates
+    removeEth0InterfaceFromNode $node
+
+    # Loop over each interface retrieved from the container
+    foreach result $results {
+        set ifname [dict get $result ifname]
+        set mac    [dict get $result mac]
+        set ipv4   [dict get $result ipv4]
+        set ipv6s  [dict get $result ipv6]
+
+        # Start building the network configuration block
+        set ifcfg [list "interface $ifname"]
+
+        # Only configure eth0, other interfaces are ignored
+        if {$ifname eq "eth0"} {
+            # Add MAC address to config
+            lappend ifcfg "mac address $mac"
+
+            # Add IPv4 if available
+            if {$ipv4 ne ""} {
+                lappend ifcfg "ip address $ipv4"
+            }
+
+            # Add all IPv6 addresses (could be multiple)
+            foreach ip6 $ipv6s {
+                lappend ifcfg "ipv6 address $ip6"
+            }
+
+            # Insert the constructed interface configuration into the node config
+            netconfInsertSection $node $ifcfg
+
+            # Add peer connection metadata for interface tracking in IMUNES
+            lappend $node "interface-peer {$ifname $node}"
+        }
+    }
+}
+
 # modification for cisco router by adding new function
 # edit topologie.net file of dynamips
 proc runConfOnNodeR { node } {
