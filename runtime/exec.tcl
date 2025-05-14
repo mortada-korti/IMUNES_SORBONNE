@@ -2177,3 +2177,138 @@ proc clusterExists {} {
     # If we didn't find any valid cluster entries, return 0
     return 0
 }
+
+#****f* exec.tcl/show_progress_window
+# NAME
+#   show_progress_window -- Creates and displays a GUI progress window for cluster creation
+# SYNOPSIS
+#   show_progress_window
+# FUNCTION
+#   This procedure opens a graphical top-level window in the center of the screen,
+#   containing a determinate progress bar and a label indicating the current step
+#   of the cluster creation process. It is used to visually track the state of the
+#   'kind create cluster' operation.
+# INPUTS
+#   * (none) -- Uses global variables to track UI elements
+# RESULT
+#   * Displays a top-level window with a progress bar and descriptive label.
+#   * Initializes global variables:
+#       - ::progress_window : The window handle
+#       - ::progress_bar    : The progress bar widget
+#       - ::progress_label  : A label widget for messages
+#****
+proc show_progress_window {} {
+    # Create a new top-level window for the progress bar
+    set ::progress_window [toplevel .progress]
+
+    # Set the title and fixed size of the window
+    wm title $::progress_window "Creation of cluster"
+    wm geometry $::progress_window "225x70"
+    wm resizable $::progress_window 0 0
+
+    # Keep the window always on top of others
+    wm attributes $::progress_window -topmost 1
+
+    # Create a frame inside the window to hold the widgets
+    set container [frame $::progress_window.container]
+    pack $container -expand 1 -fill both -padx 10 -pady 10
+
+    # Create the progress bar (horizontal, determinate mode)
+    set ::progress_bar [ttk::progressbar $container.pb -orient horizontal -length 200 -mode determinate]
+    pack $::progress_bar -pady 2 -anchor center
+
+    # Create a label to show current progress step as text
+    set ::progress_label [label $container.label -text "Starting..." -font {Helvetica 9}]
+    pack $::progress_label -pady 2 -anchor center
+
+    # Force immediate rendering of the window
+    update
+
+    # Center the window on the screen
+    set x [expr {([winfo screenwidth .] - [winfo reqwidth $::progress_window])/2}]
+    set y [expr {([winfo screenheight .] - [winfo reqheight $::progress_window])/2}]
+    wm geometry $::progress_window "+$x+$y"
+}
+
+#****f* exec.tcl/update_progress
+# NAME
+#   update_progress -- Update the progress bar and message in the cluster creation window
+# SYNOPSIS
+#   update_progress percent ?message?
+# FUNCTION
+#   This procedure updates the graphical progress bar and optional status message
+#   during Kubernetes cluster creation. It is typically called during key milestones
+#   (e.g., preparing nodes, configuring cluster).
+#
+#   It only performs the update if the progress window still exists.
+# INPUTS
+#   * percent -- Integer percentage (0–100) to update the progress bar value
+#   * message -- Optional string message to display as a status label (e.g. "Starting...")
+# RESULT
+#   * Visually updates the progress bar and message on screen.
+#****
+proc update_progress {percent {message ""}} {
+    # Check if the progress window still exists (not closed)
+    if {[winfo exists $::progress_window]} {
+        # Update the progress bar with the current percentage
+        $::progress_bar configure -value $percent
+
+        # If a message is provided, update the label with it
+        if {$message ne ""} {
+            $::progress_label configure -text $message
+        }
+
+        # Force the UI to refresh immediately
+        update
+    }
+}
+
+#****f* exec.tcl/read_pipe_output
+# NAME
+#   read_pipe_output -- Monitor and react to output from Kind cluster creation
+# SYNOPSIS
+#   read_pipe_output pipe
+# FUNCTION
+#   This procedure is used to asynchronously read the output of the "kind create cluster"
+#   command while it's running. It checks the pipe for recognizable phrases corresponding
+#   to specific stages in the cluster setup process, and updates the progress bar accordingly.
+#
+#   It also prints each output line to the terminal for visibility/debugging purposes.
+# INPUTS
+#   * pipe -- The file descriptor (pipe) for reading Kind's standard output in real time
+# RESULT
+#   * Updates the progress bar and message as the cluster creation progresses
+#   * Closes the pipe and clears the ::kind_process variable when done
+#****
+proc read_pipe_output {pipe} {
+    # If we reach the end of the pipe, close it and clear the process variable
+    if {[eof $pipe]} {
+        catch {close $pipe}
+        set ::kind_process ""
+        return
+    }
+    
+    # Read a single line from the pipe
+    gets $pipe line
+
+    # If the line is not empty
+    if {$line ne ""} {
+        # Print the line in the terminal for visibility
+        puts $line
+
+        # Match known key phrases to update the progress bar accordingly
+        if {[string match "*Creating cluster*" $line]} {
+            update_progress 30 "Creating cluster..."
+        } elseif {[string match "*Preparing nodes*" $line]} {
+            update_progress 40 "Preparing nodes..."
+        } elseif {[string match "*Writing configuration*" $line]} {
+            update_progress 60 "Writing configuration..."
+        } elseif {[string match "*Starting control-plane*" $line]} {
+            update_progress 70 "Starting control-plane..."
+        } elseif {[string match "*Joining worker nodes*" $line]} {
+            update_progress 85 "Joining worker nodes..."
+        } elseif {[string match "*Ready*" $line]} {
+            update_progress 100 "Ready!"
+        }
+    }
+}
