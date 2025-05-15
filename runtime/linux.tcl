@@ -2573,6 +2573,65 @@ proc addNodeIfcToBridge { bridge brifc node ifc mac } {
     exec ip netns del $nodeNs
 }
 
+#****f* linux.tcl/addNodeIfcToBridgeK
+# NAME
+#   addNodeIfcToBridgeK -- Connect a Kubernetes node to an OVS bridge
+# SYNOPSIS
+#   addNodeIfcToBridgeK bridge brifc node ifc adr
+# FUNCTION
+#   This procedure connects a Kubernetes container node to an Open vSwitch (OVS) bridge
+#   using a virtual Ethernet (veth) pair. One end of the veth is attached to the OVS bridge,
+#   and the other end is moved into the container’s network namespace and configured.
+#
+#   The function ensures the bridge exists, creates the veth pair, configures the interfaces,
+#   and assigns the appropriate IP address.
+#
+# INPUTS
+#   * bridge  -- Logical name of the bridge (IMUNES link name)
+#   * brifc   -- Interface name used on the bridge side
+#   * node    -- Logical name of the Kubernetes container node
+#   * ifc     -- Interface name inside the container
+#   * adr     -- IP address (CIDR) to assign to the interface inside the container
+#
+# RESULT
+#   * The node is connected to the bridge and can exchange traffic with other members
+#   * Interface appears in the container and on the OVS bridge
+#****
+proc addNodeIfcToBridgeK { bridge brifc node ifc adr } {
+    # Retrieve the current experiment ID
+    upvar 0 ::cf::[set ::curcfg]::eid eid
+
+    # Ensure the Open vSwitch bridge exists (or create it if missing)
+    catch "exec ovs-vsctl add-br $eid-$bridge"
+    catch "exec ovs-vsctl set bridge $eid-$bridge stp_enable=true"
+
+    # Define the veth pair interface names (host and guest sides)
+    set hostIfc "$eid-$bridge-$brifc"   ;# Interface on the host/bridge side
+    set guestIfc "$eid-$node-$ifc"      ;# Interface on the container side
+    set node_id "$eid.$node"            ;# Full Docker container ID (experiment.node)
+
+    # Clean up existing interfaces if they exist
+    catch {exec ip link del $hostIfc}
+    catch {exec ip link del $guestIfc}
+
+    # Create the veth pair that connects host to the container
+    exec ip link add name "$hostIfc" type veth peer name "$guestIfc"
+
+    # Attach the host side to the Open vSwitch bridge
+    catch "exec ovs-vsctl add-port $eid-$bridge $hostIfc"
+
+    # Bring up the host interface
+    exec ip link set "$hostIfc" up
+
+    # Move the guest side into the container's network namespace and rename it
+    setIfcNetNs $node $guestIfc $ifc
+
+    # Assign IP address to the guest interface inside the container
+    exec docker exec -it $node_id ip addr add $adr dev $ifc
+
+    # Bring up the guest interface inside the container
+    exec docker exec -it $node_id ip link set $ifc up
+}
 
 # modification for wifiap by adding new function
 # this function connect wifiap node with bridge
