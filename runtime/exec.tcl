@@ -31,10 +31,17 @@
 # This work was supported in part by the Croatian Ministry of Science
 # and Technology through the research contract #IP-2003-143.
 #
+# Variables globales pour la progress bar
+set ::progress_window ""
+set ::progress_bar ""
+set ::progress_label ""
+set ::progress_value 0
+set ::progress_max 100
+set ::kind_process ""
 
 global vroot_unionfs vroot_linprocfs ifc_dad_disable regular_termination \
     devfs_number hostsAutoAssign linkJitterConfiguration ipsecSecrets \
-    ipsecConf ipFastForwarding
+    ipsecConf ipFastForwarding cluster_nodes 
 
 set linkJitterConfiguration 0
 set vroot_unionfs 1
@@ -44,6 +51,7 @@ set regular_termination 1
 set devfs_number 46837
 set hostsAutoAssign 0
 set ipFastForwarding 0
+set cluster_nodes 0
 
 #****f* exec.tcl/nexec
 # NAME
@@ -203,7 +211,25 @@ proc setOperMode { mode } {
 	    exit
 	}
 	.bottom.experiment_id configure -text "Experiment ID = $eid"
-    } else {
+    } elseif { "$mode" == "kind" } {
+		if {![validateK8sNodes]} {
+		return
+		}
+		global autorearrange_enabled
+		set autorearrange_enabled 0
+		.menubar.tools entryconfigure "Auto rearrange all" -state disabled
+		.menubar.tools entryconfigure "Auto rearrange selected" -state disabled
+		.menubar.experiment entryconfigure "Execute" -state normal
+		.menubar.experiment entryconfigure "Create Cluster" -state disabled
+		.menubar.experiment entryconfigure "Terminate" -state normal
+		.menubar.experiment entryconfigure "Restart" -state disabled
+		.menubar.edit entryconfigure "Undo" -state disabled
+		.menubar.edit entryconfigure "Redo" -state disabled
+		.menubar.tools entryconfigure "Routing protocol defaults" -state disabled
+		.panwin.f1.c bind node <Double-1> "spawnShellExec"
+		.panwin.f1.c bind nodelabel <Double-1> "spawnShellExec"
+		set oper_mode kind
+	} else {
 	if {$oper_mode != "edit"} {
 	    global regular_termination
 	    wm protocol . WM_DELETE_WINDOW {
@@ -216,6 +242,7 @@ proc setOperMode { mode } {
 	    killExtProcess "socat.*$eid"
 	    set cfgDeployed false
 	    deleteExperimentFiles $eid
+		deleteCluster
 	    wm protocol . WM_DELETE_WINDOW {
 		exit
 	    }
@@ -227,6 +254,7 @@ proc setOperMode { mode } {
 	    .menubar.experiment entryconfigure "Execute" -state disabled
  	} else {
 	    .menubar.experiment entryconfigure "Execute" -state normal
+		.menubar.experiment entryconfigure "Create Cluster" -state normal
 	}
 	.menubar.experiment entryconfigure "Terminate" -state disabled
 	.menubar.experiment entryconfigure "Restart" -state disabled
