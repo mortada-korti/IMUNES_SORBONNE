@@ -2792,6 +2792,16 @@ xterm and nsenter installed."
 }
 
 proc createNetNs { node } {
+    # Retrieve the experiment ID
+    upvar 0 ::cf::[set ::curcfg]::eid eid
+    set node_id "$eid.$node"  ;# Full container name or node identifier
+
+    # If the node is a Kubernetes container (Docker-based)
+    if {[typemodel $node] == "k8s"} {
+        # Get the PID of the container process
+        catch {exec docker inspect -f "{{.State.Pid}}" $node_id} nodeNs
+        return $nodeNs
+    }
     set nodeNs [getNodeNamespace $node]
     exec rm -f "/var/run/netns/$nodeNs"
     exec ln -s "/proc/$nodeNs/ns/net" "/var/run/netns/$nodeNs"
