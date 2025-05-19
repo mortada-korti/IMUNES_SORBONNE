@@ -927,7 +927,7 @@ if { [file exist "$dynacurdir/WIFI/$eid"] != 1 } {
 proc cleanupAP { node } {
     upvar 0 ::cf::[set ::curcfg]::eid eid
     set node_id "$eid.$node"
-
+    catch "exec rmmod mac80211_hwsim mac80211 cfg80211"
     #exec ip netns exec $node_id bash -c "killall hostapd" &
 
     #exec ip netns exec $node_id bash -c "killall dnsmasq" & 
@@ -947,6 +947,7 @@ proc cleanupSTA { node } {
 
     exec ip netns exec $node_id bash -c  "wpa_cli -i wlan$id terminate" &
     exec ip netns exec $node_id bash -c  "dhclient -r wlan$id" &  
+    catch "exec rmmod mac80211_hwsim mac80211 cfg80211"
     #exec ip netns exec $node_id killall wpa_supplicant &
     #exec ip netns exec $node_id ifdown wlan$id &
 
@@ -2268,13 +2269,13 @@ proc prepareDynamips { eid } {
 
     global dynacurdir
 
-    # Vérifier si le serveur hyperviseur est déjà en cours d'exécution 
+    # Verify if the hypervisor is running  
     set isRunning [catch {exec nc -z localhost 7200} result]
     if {$isRunning != 0} {
-        # Si le server n'est pas en cours d'exécution, le démarrer
+        # If the server is not running, launch it
         catch {exec /usr/bin/dynamips -H 7200 &}
     }
-    # Arrêter dynagen avant de le relancer
+    # Stop Dynagen Before re-launching it
     catch {exec pkill -9 dynagen}
     catch {exec /usr/bin/dynagen $dynacurdir/Dynamips/$eid/lab/topologie.net &}
 }
