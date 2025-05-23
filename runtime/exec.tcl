@@ -176,8 +176,9 @@ proc setOperMode { mode } {
 	}
     }
 
+	lassign [mw_nodes_count] master_count worker_count
     foreach b { link link_layer net_layer } {
-	if { "$mode" == "exec" } {
+	if { "$mode" == "exec" || ("$mode" == "kind" && [clusterExists] && [k8sExists] && $master_count == 1)} {
 	    .panwin.f1.left.$b configure -state disabled
 	} else {
 	    .panwin.f1.left.$b configure -state normal
@@ -192,6 +193,7 @@ proc setOperMode { mode } {
 	.menubar.tools entryconfigure "Auto rearrange all" -state disabled
 	.menubar.tools entryconfigure "Auto rearrange selected" -state disabled
 	.menubar.experiment entryconfigure "Execute" -state disabled
+	.menubar.experiment entryconfigure "Create Cluster" -state disabled
 	.menubar.experiment entryconfigure "Terminate" -state normal
 	.menubar.experiment entryconfigure "Restart" -state normal
 	.menubar.edit entryconfigure "Undo" -state disabled
@@ -1088,7 +1090,7 @@ proc deployCfg {} {
 
 	set eid ${eid_base}[string range $::curcfg 1 end]
 	while { $eid in $running_eids } {
-	    set eid_base i[format %04x [expr {[pid] + [expr { round( rand()*10000 ) }]}]]
+	    set eid_base i[format %04x [expr {int(rand() * 65536)}]]
 	    set eid ${eid_base}[string range $::curcfg 1 end]
 	}
     } else {
@@ -1096,7 +1098,7 @@ proc deployCfg {} {
 	while { $eid in $running_eids } {
 
 	    puts -nonewline "Experiment ID $eid_base already in use, trying "
-	    set eid i[format %04x [expr {[pid] + [expr { round( rand()*10000 ) }]}]]
+	    set eid i[format %04x [expr {int(rand() * 65536)}]]
 	    puts "$eid."
 	}
     }
