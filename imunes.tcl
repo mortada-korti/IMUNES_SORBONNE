@@ -124,7 +124,7 @@ safePackageRequire [list cmdline platform ip base64]
 set initMode 0
 set execMode interactive
 set debug 0
-set eid_base i[format %04x [expr {[pid] + [expr { round( rand()*10000 ) }]}]]
+set eid_base i[format %04x [expr {int(rand() * 65536)}]]
 set printVersion 0
 set prepareFlag 0
 set forceFlag 0

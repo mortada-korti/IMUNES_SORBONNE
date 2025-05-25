@@ -1248,6 +1248,354 @@ proc createLinkBetween { lnode1 lnode2 ifname1 ifname2 } {
     set lname2 $lnode2
 
     switch -exact "[[typemodel $lnode1].virtlayer]-[[typemodel $lnode2].virtlayer]" {
+    K8S-K8S {
+        # Define and construct the interface names and their corresponding veth endpoints
+        set ifname1 "$ifname1"  ;# Interface name for the first node (usually ethX or vethX)
+        set hostIfc1 "$eid-$lname1-$ifname1"  ;# Unique veth name for host side (to avoid conflicts)
+
+        set ifname2 "$ifname2"  ;# Interface name for the second node
+        set hostIfc2 "$eid-$lname2-$ifname2"  ;# Unique veth name for host side
+
+        # Create a veth pair with the generated names
+        exec ip link add name "$hostIfc1" type veth peer name "$hostIfc2"
+
+        # Move the veth interfaces to their respective container namespaces
+        setIfcNetNs $lnode1 $hostIfc1 $ifname1
+        setIfcNetNs $lnode2 $hostIfc2 $ifname2
+
+        # Activate interfaces and assign IP addresses inside both containers
+        exec docker exec -it "$node_id1" ip link set "$ifname1" up
+        exec docker exec -it "$node_id1" ip addr add "$adr1" dev "$ifname1"
+
+        exec docker exec -it "$node_id2" ip link set "$ifname2" up
+        exec docker exec -it "$node_id2" ip addr add "$adr2" dev "$ifname2"
+    }
+
+    VIMAGE-K8S {
+        # Get the network namespace of the VIMAGE node
+        set lnode1Ns [createNetNs $lnode1]
+
+        # Generate a unique name for the host side of the veth pair (connected to VIMAGE)
+        set hostIfc1 "v${ifname1}pn${lnode1Ns}"
+
+        # Name for the interface inside the Kubernetes node
+        set ifname2 "$ifname2"
+        set hostIfc2 "$eid-$lname2-$ifname2"  ;# Unique name for the veth side going to the K8s node
+
+        # Create a veth pair to connect both nodes
+        exec ip link add name "$hostIfc1" type veth peer name "$hostIfc2"
+
+        # Move the veth interfaces to the respective network namespaces
+        setIfcNetNs $lnode1 $hostIfc1 $ifname1   ;# Attach to the VIMAGE node namespace
+        setIfcNetNs $lnode2 $hostIfc2 $ifname2   ;# Attach to the Kubernetes container
+
+        # Set MAC address for the interface inside VIMAGE node
+        exec nsenter -n -t "$lnode1Ns" ip link set dev "$ifname1" address "$ether1"
+
+        # Bring up the interface and assign IP address inside the Kubernetes container
+        exec docker exec -it "$node_id2" ip link set "$ifname2" up
+        exec docker exec -it "$node_id2" ip addr add "$adr2" dev "$ifname2"
+
+        # Clean up: remove the temporary network namespace symlink
+        exec ip netns del "$lnode1Ns"
+    }
+
+    K8S-VIMAGE {
+        # Create a temporary network namespace for the VIMAGE node
+        set lnode2Ns [createNetNs $lnode2]
+
+        # Define the interface name on the VIMAGE side of the veth pair
+        set hostIfc2 "v${ifname2}pn${lnode2Ns}"
+
+        # Define the interface name inside the Kubernetes container
+        set ifname1 "$ifname1"
+        set hostIfc1 "$eid-$lname1-$ifname1"
+
+        # Create a veth pair: one end for the K8s node and the other for the VIMAGE node
+        exec ip link add name "$hostIfc1" type veth peer name "$hostIfc2"
+
+        # Attach the interfaces to the correct namespaces
+        setIfcNetNs $lnode1 $hostIfc1 $ifname1   ;# K8s container side
+        setIfcNetNs $lnode2 $hostIfc2 $ifname2   ;# VIMAGE node side
+
+        # Set MAC address on the VIMAGE side using nsenter
+        exec nsenter -n -t "$lnode2Ns" ip link set dev "$ifname2" address "$ether2"
+
+        # Bring up the interface and assign IP inside the Kubernetes container
+        exec docker exec -it "$node_id1" ip link set "$ifname1" up
+        exec docker exec -it "$node_id1" ip addr add "$adr1" dev "$ifname1"
+
+        # Clean up: remove the temporary namespace link for VIMAGE
+        exec ip netns del "$lnode2Ns"
+    }
+
+    NAMESPACE-K8S {
+        # Define the host-side interface for the namespace node (non-Docker)
+        set hostIfc1 "$eid-$lname1-$ifname1"
+
+        # Define the desired interface name inside the Kubernetes container
+        set ifname2 "$ifname2"
+        set hostIfc2 "$eid-$lname2-$ifname2"
+
+        # Create a veth pair between the namespace node and the K8s node
+        exec ip link add name "$hostIfc1" type veth peer name "$hostIfc2"
+
+        # Move one end of the veth pair into the network namespace of the namespace node
+        exec ip link set "$hostIfc1" netns $node_id1
+
+        # Attach the second interface to the Kubernetes container
+        setIfcNetNs $lnode2 $hostIfc2 $ifname2
+
+        # Inside the namespace node:
+        # Rename the interface from hostIfc1 to the desired name (ifname1)
+        catch "exec ip netns exec $node_id1 ip link set $hostIfc1 name $ifname1"
+
+        # Set the MAC address for the interface
+        catch "exec ip netns exec $node_id1 ip link set $ifname1 address $ether1"
+
+        # Bring up the interface
+        catch "exec ip netns exec $node_id1 ip link set $ifname1 up"
+
+        # Inside the Kubernetes container:
+        # Bring up the interface and assign IP address
+        exec docker exec -it "$node_id2" ip link set "$ifname2" up
+        exec docker exec -it "$node_id2" ip addr add "$adr2" dev "$ifname2"
+    }
+
+    K8S-NAMESPACE {
+        # Define the host-side interface names for both nodes
+        set hostIfc2 "$eid-$lname2-$ifname2"  ;# Temporary interface name for the namespace node
+        set ifname1 "$ifname1"              ;# Desired interface name inside the K8s container
+        set hostIfc1 "$eid-$lname1-$ifname1"  ;# Temporary interface name for the K8s node
+
+        # Create a virtual Ethernet (veth) pair connecting both nodes
+        exec ip link add name "$hostIfc1" type veth peer name "$hostIfc2"
+
+        # Move the namespace side of the veth pair into the namespace node
+        exec ip link set "$hostIfc2" netns $node_id2
+
+        # Move the K8s side of the veth pair into the Docker container
+        setIfcNetNs $lnode1 $hostIfc1 $ifname1
+
+        # Inside the namespace node:
+        # Rename the interface from temporary name to its final name
+        catch "exec ip netns exec $node_id2 ip link set $hostIfc2 name $ifname2"
+
+        # Set the MAC address for the interface
+        catch "exec ip netns exec $node_id2 ip link set $ifname2 address $ether2"
+
+        # Bring the interface up
+        catch "exec ip netns exec $node_id2 ip link set $ifname2 up"
+
+        # Inside the Kubernetes container (Docker):
+        # Bring up the interface and assign the IP address
+        exec docker exec -it "$node_id1" ip link set "$ifname1" up
+        exec docker exec -it "$node_id1" ip addr add "$adr1" dev "$ifname1"
+    }
+
+    K8S-WIFIAP {
+        # Assign interface names
+        set ifname1 "$ifname1"                        ;# Desired name inside the K8S container
+        set hostIfc1 "$eid-$lname1-$ifname1"            ;# Temporary interface name for the K8S host
+        set hostIfc2 "$eid-$lname2-$ifname2"            ;# Temporary interface name for the WiFiAP
+
+        # Create a virtual Ethernet pair connecting K8S <-> WiFiAP
+        exec ip link add name "$hostIfc1" type veth peer name "$hostIfc2"
+
+        # Move the WiFiAP side of the veth into the WiFiAP network namespace
+        exec ip link set "$hostIfc2" netns $node_id2
+
+        # Move the K8S side of the veth into the Docker container (K8S node)
+        setIfcNetNs $lnode1 $hostIfc1 $ifname1
+
+        # In the WiFiAP namespace:
+        # Rename the temporary interface to the desired name
+        catch "exec ip netns exec $node_id2 ip link set $hostIfc2 name $ifname2"
+
+        # Assign the MAC address to the WiFiAP interface
+        catch "exec ip netns exec $node_id2 ip link set $ifname2 address $ether2"
+
+        # Bring the WiFiAP interface up
+        catch "exec ip netns exec $node_id2 ip link set $ifname2 up"
+
+        # In the K8S Docker container:
+        # Bring the interface up and assign the IP address
+        exec docker exec -it "$node_id1" ip link set "$ifname1" up
+        exec docker exec -it "$node_id1" ip addr add "$adr1" dev "$ifname1"
+    }
+
+    WIFIAP-K8S {
+        # Construct the temporary veth interface names based on the experiment ID and node names
+        set hostIfc1 "$eid-$lname1-$ifname1"  ;# Interface on WiFiAP side (initial temporary name)
+        set hostIfc2 "$eid-$lname2-$ifname2"  ;# Interface on K8S side (initial temporary name)
+
+        # Create a veth pair connecting WiFiAP and K8S
+        exec ip link add name "$hostIfc1" type veth peer name "$hostIfc2"
+
+        # Move the WiFiAP interface into the WiFiAP network namespace
+        exec ip link set "$hostIfc1" netns $node_id1
+
+        # Inside the WiFiAP namespace:
+        # - Rename the veth interface to its final name
+        # - Set its MAC address
+        # - Bring it up
+        catch "exec ip netns exec $node_id1 ip link set $hostIfc1 name $ifname1"
+        catch "exec ip netns exec $node_id1 ip link set $ifname1 address $ether1"
+        catch "exec ip netns exec $node_id1 ip link set $ifname1 up"
+
+        # Move the other end of the veth into the K8S Docker container and rename it
+        setIfcNetNs $lnode2 $hostIfc2 $ifname2
+
+        # Inside the K8S container:
+        # - Bring up the interface and assign an IP address
+        exec docker exec -it "$node_id2" ip link set "$ifname2" up
+        exec docker exec -it "$node_id2" ip addr add "$adr2" dev "$ifname2"
+    }
+    
+    NETGRAPH-K8S {
+        # Connects a K8s node interface to a Netgraph switch using Open vSwitch.
+        # This creates a veth pair between the K8s node and the Netgraph bridge.
+
+        # Parameters:
+        # - $lname1: the name of the Netgraph switch
+        # - $ifname1: the interface name on the switch
+        # - $lnode2: the Kubernetes node being connected
+        # - $ifname2: the interface name inside the K8s node
+        # - $adr2: the IP address to assign to the K8s interface
+
+        addNodeIfcToBridgeK $lname1 $ifname1 $lnode2 $ifname2 $adr2
+    }
+
+    K8S-NETGRAPH {
+        # Connects a K8s node interface to a Netgraph switch using Open vSwitch.
+        # This creates a veth pair between the K8s node and the Netgraph bridge.
+
+        # Parameters:
+        # - $lname2: the name of the Netgraph switch (used as the bridge name)
+        # - $ifname2: the interface name on the switch
+        # - $lnode1: the Kubernetes node being connected
+        # - $ifname1: the interface name inside the K8s node
+        # - $adr1: the IP address to assign to the K8s interface
+
+        addNodeIfcToBridgeK $lname2 $ifname2 $lnode1 $ifname1 $adr1
+    }
+
+    DYNAMIPS-K8S {
+        # Connects a Dynamips (Cisco router) node to a Kubernetes (Docker-based) node using a veth pair.
+
+        # Create unique interface names for both ends of the veth pair
+        set hostIfc1 "$eid-$lnode2-$lnode1"              ;# Interface on the Dynamips side
+        set hostIfc2 "$eid-$lname2-$ifname2"             ;# Interface on the K8s side
+
+        # Create the virtual Ethernet (veth) pair
+        exec ip link add name "$hostIfc1" type veth peer name "$hostIfc2"
+
+        # Bring up the Dynamips side interface
+        exec ip link set dev $hostIfc1 up
+
+        # Ensure the configuration file exists for Dynamips
+        verifierFichier_Dynamips $lnode1
+
+        # Append the interface binding for Dynamips to its config file
+        set fp [open "$dynacurdir/Dynamips/$eid/node/$lnode1.txt" a]
+        puts $fp "$ifname1 = NIO_linux_eth:$hostIfc1"
+        close $fp
+
+        # Move the second veth interface into the K8s container
+        setIfcNetNs $lnode2 $hostIfc2 $ifname2
+
+        # Configure the interface inside the container: bring it up and assign IP
+        exec docker exec -it "$node_id2" ip link set "$ifname2" up
+        exec docker exec -it "$node_id2" ip addr add "$adr2" dev "$ifname2"
+    }
+
+    K8S-DYNAMIPS {
+        # Connects a Kubernetes (Docker-based) node to a Dynamips (Cisco router) node using a veth pair.
+
+        # Define the interface names for both ends of the veth pair
+        set hostIfc2 "$eid-$lnode1-$lnode2"             ;# Interface that will stay on the host (Dynamips side)
+        set hostIfc1 "$eid-$lname1-$ifname1"            ;# Interface to be moved into the container (K8s side)
+
+        # Create the veth pair between Kubernetes and Dynamips nodes
+        exec ip link add name "$hostIfc1" type veth peer name "$hostIfc2"
+
+        # Bring up the host-side interface (Dynamips will pick it up)
+        exec ip link set dev $hostIfc2 up
+
+        # Ensure the Dynamips configuration file exists for this node
+        verifierFichier_Dynamips $lnode2
+
+        # Register the interface in the Dynamips configuration file
+        set fp [open "$dynacurdir/Dynamips/$eid/node/$lnode2.txt" a]
+        puts $fp "$ifname2 = NIO_linux_eth:$hostIfc2"
+        close $fp
+
+        # Move the Kubernetes side of the veth into the container's namespace
+        setIfcNetNs $lnode1 $hostIfc1 $ifname1
+
+        # Inside the container: bring the interface up and assign its IP
+        exec docker exec -it "$node_id1" ip link set "$ifname1" up
+        exec docker exec -it "$node_id1" ip addr add "$adr1" dev "$ifname1"
+    }
+
+    QEMU-QEMU {
+        if { [nodeType $lnode1] == "ext" } {
+
+        catch "exec ovs-vsctl add-br $eid-$lnode1"
+        catch "exec ovs-vsctl set bridge $eid-$lnode1 stp_enable=true"
+        }
+        if { [nodeType $lnode2] == "ext" } {
+
+        catch "exec ovs-vsctl add-br $eid-$lnode2"
+        catch "exec ovs-vsctl set bridge $eid-$lnode2 stp_enable=true"
+        }
+
+        set hostIfc1 "$eid-$lname1-$ifname1"
+        set hostIfc2 "$eid-$lname2-$ifname2"
+
+        catch {exec ip link add name "$hostIfc1" type veth peer name "$hostIfc2"}
+
+        catch "exec ovs-vsctl add-port $eid-$lname1 $hostIfc1"
+        catch "exec ovs-vsctl add-port $eid-$lname2 $hostIfc2"
+        # set bridge interfaces up
+        exec ip link set dev $hostIfc1 up
+        exec ip link set dev $hostIfc2 up
+    }
+    QEMU-NETGRAPH {
+        if { [nodeType $lnode1] == "ext" } {
+
+        catch "exec ovs-vsctl add-br $eid-$lnode1"
+        catch "exec ovs-vsctl set bridge $eid-$lnode1 stp_enable=true"
+        }
+        if { [nodeType $lnode2] == "ext" } {
+
+        catch "exec ovs-vsctl add-br $eid-$lnode2"
+        catch "exec ovs-vsctl set bridge $eid-$lnode2 stp_enable=true"
+        }
+
+
+
+        catch "exec ovs-vsctl add-port $eid-$lnode2 $eid-$lnode1"
+    }
+
+        NETGRAPH-QEMU {
+        if { [nodeType $lnode1] == "ext" } {
+
+        catch "exec ovs-vsctl add-br $eid-$lnode1"
+        catch "exec ovs-vsctl set bridge $eid-$lnode1 stp_enable=true"
+        }
+        if { [nodeType $lnode2] == "ext" } {
+
+        catch "exec ovs-vsctl add-br $eid-$lnode2"
+        catch "exec ovs-vsctl set bridge $eid-$lnode2 stp_enable=true"
+        }
+
+
+
+        catch "exec ovs-vsctl add-port $eid-$lnode1 $eid-$lnode2"
+    }
+
+
     NETGRAPH-NETGRAPH {
         if { [nodeType $lnode1] == "ext" } {
 
